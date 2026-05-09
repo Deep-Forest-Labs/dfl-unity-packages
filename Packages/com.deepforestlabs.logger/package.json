@@ -1,0 +1,16 @@
+{
+  "name": "com.deepforestlabs.logger",
+  "author": "Deep Forest Labs",
+  "displayName": "Deep Forest Labs Logger",
+  "version": "1.0.0",
+  "unity": "2018.4",
+  "description": "Common logger with different modes for Editor, Debug, and Release type builds",
+  "keywords": [
+    "logging",
+    "logger"
+  ],
+  "category": "Logger",
+  "dependencies": {
+    "com.cysharp.zstring": "2.4.2"
+  }
+}

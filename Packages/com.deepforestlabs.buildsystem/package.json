@@ -1,0 +1,22 @@
+{
+  "name": "com.deepforestlabs.buildsystem",
+  "author": "Deep Forest Labs",
+  "displayName": "Deep Forest Labs Build System",
+  "version": "1.0.0",
+  "unity": "2018.4",
+  "description": "Client build system for building Android and iOS clients",
+  "keywords": [
+    "builds"
+  ],
+  "category": "Builds",
+  "dependencies": {
+    "com.unity.addressables": "1.19.19"
+  },
+  "samples": [
+    {
+      "displayName": "Samples",
+      "description": "Various 2D samples for usage of the Environment Selector and Build Options",
+      "path": "Samples~/BuildSystem"
+    }
+  ]
+}

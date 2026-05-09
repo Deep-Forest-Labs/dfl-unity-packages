@@ -1,0 +1,17 @@
+{
+  "name": "com.deepforestlabs.framework",
+  "author": "Deep Forest Labs",
+  "displayName": "Deep Forest Labs Framework",
+  "version": "1.0.0",
+  "unity": "2021.3",
+  "description": "Core game framework: DI containers, MVC, async architecture",
+  "keywords": [],
+  "category": "Framework",
+  "dependencies": {
+    "com.cysharp.unitask": "2.2.5",
+    "com.unity.addressables": "1.19.19",
+    "com.unity.test-framework": "1.1.33",
+    "com.deepforestlabs.logger": "1.0.0",
+    "com.deepforestlabs.buildsystem": "1.0.0"
+  }
+}

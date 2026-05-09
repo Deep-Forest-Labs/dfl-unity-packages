@@ -1,0 +1,28 @@
+{
+    "name": "DeepForestLabs.BuildSystem.Editor",
+    "rootNamespace": "DeepForestLabs.BuildSystems",
+    "references": [
+        "GUID:9e24947de15b9834991c9d8411ea37cf",
+        "GUID:84651a3751eca9349aac36a66bba901b",
+        "GUID:69448af7b92c7f342b298e06a37122aa",
+        "GUID:6256bdcb0aaf53446b7dd10403a9d748",
+        "GUID:c5ecc461727906345a35491a0440694f",
+        "GUID:04b17a29205114ee38ac706988860b47",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:33661e06c33d31b4c9223810bf503247",
+        "GUID:727469af714124c13aa97897dd0bd66c",
+        "GUID:05fc6da811de347179779e0d98423752",
+        "GUID:727469af714124c13aa97897dd0bd666"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

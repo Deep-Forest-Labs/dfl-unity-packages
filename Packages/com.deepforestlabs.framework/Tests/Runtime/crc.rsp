@@ -1,0 +1,4 @@
+-nullable:enable
+-warn:4
+-warnaserror+
+-nowarn:CS0649

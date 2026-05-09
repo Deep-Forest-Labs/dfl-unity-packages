@@ -1,0 +1,8 @@
+<linker>
+    <!--Preserve an entire assembly-->
+    <assembly fullname="InkGames">
+        <namespace fullname="InkGames" preserve="all"/>
+        <namespace fullname="InkGames.*" preserve="all"/>
+        <namespace fullname="IOSSettingsBundle" preserve="all"/>
+    </assembly>
+</linker>
