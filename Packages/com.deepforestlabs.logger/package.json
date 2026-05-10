@@ -11,6 +11,6 @@
   ],
   "category": "Logger",
   "dependencies": {
-    "com.cysharp.zstring": "2.4.2"
+    "com.cysharp.zstring": "2.6.0"
   }
 }

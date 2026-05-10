@@ -1,20 +1,17 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using UnityEngine.Analytics;
 
 namespace DeepForestLabs.Services
 {
+	/// <summary>
+	/// Analytics data collection is disabled by default in SDK 6.0+ (dormant until
+	/// StartDataCollection is explicitly called). This class is retained as a
+	/// placeholder for future privacy/consent logic.
+	/// </summary>
 	public sealed class DataPrivacy : IInitializable
 	{
 		public UniTask Initialize(CancellationToken token)
 		{
-			Analytics.initializeOnStartup = false;
-			Analytics.limitUserTracking = true;
-
-			Analytics.enabled = false;
-			Analytics.deviceStatsEnabled = false;
-			PerformanceReporting.enabled = false;
-
 			return UniTask.CompletedTask;
 		}
 	}

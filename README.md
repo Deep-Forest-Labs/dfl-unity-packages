@@ -28,12 +28,31 @@ Pin to a specific tag (e.g. `#v1.0.0`) for reproducible builds.
 
 ## Dependencies
 
-These packages require the following UPM dependencies (resolved automatically):
+These packages depend on third-party UPM packages that are **not** on the Unity registry. Consuming projects must add the OpenUPM scoped registry and the package references to their `Packages/manifest.json`:
+
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.cysharp"
+      ]
+    }
+  ],
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10",
+    "com.cysharp.zstring": "2.6.0"
+  }
+}
+```
+
+The following dependencies resolve automatically from the Unity registry:
 
 - `com.unity.addressables`
 - `com.unity.nuget.newtonsoft-json`
 - `io.sentry.unity`
-- `com.cysharp.unitask`
 
 ## License
 
