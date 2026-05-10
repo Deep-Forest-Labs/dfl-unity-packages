@@ -2,7 +2,7 @@
 using DeepForestLabs.Utils;
 using UnityEngine;
 
-namespace IOSSettingsBundle
+namespace DeepForestLabs.Settings
 {
     public static class SettingsBundle
     {

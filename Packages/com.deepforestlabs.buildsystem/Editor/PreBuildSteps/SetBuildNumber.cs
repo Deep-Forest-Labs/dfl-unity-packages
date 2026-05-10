@@ -1,9 +1,7 @@
-using System;
 using DeepForestLabs.Logger;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
-using UnityEngine;
 
 // Set the build number X.Y.Z (build)
 namespace DeepForestLabs.BuildSystems.PreBuildSteps
@@ -26,6 +24,14 @@ namespace DeepForestLabs.BuildSystems.PreBuildSteps
 				case BuildTarget.Android:
 					PlayerSettings.Android.bundleVersionCode = buildSettings.BuildNumber;
 					break;
+
+			case BuildTarget.StandaloneWindows64:
+			case BuildTarget.StandaloneWindows:
+			case BuildTarget.StandaloneOSX:
+			case BuildTarget.StandaloneLinux64:
+			case BuildTarget.WebGL:
+				// No dedicated build number field; value is in BuildSettings
+				break;
 			}
 		}
 	}

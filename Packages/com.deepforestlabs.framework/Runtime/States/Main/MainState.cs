@@ -10,7 +10,6 @@ using DeepForestLabs.Services;
 using DeepForestLabs.States.Error;
 using DeepForestLabs.States.Error.Controllers;
 using DeepForestLabs.States.UnobservedExceptions;
-using Sentry.Unity;
 using UnityEngine;
 
 namespace DeepForestLabs.States.Main
@@ -24,12 +23,13 @@ namespace DeepForestLabs.States.Main
 	    [Dependency] private readonly BuildSettings _buildSettings = default!;
 	    [Dependency] private readonly IAnalyticsErrorHelper _analyticsErrorHelper = null!;
 	    [Dependency] private readonly ILoggingService _loggingService = null!;
+	    [Dependency] private readonly IErrorReporter _errorReporter = null!;
 	    [Dependency] private readonly UnobservedExceptionState _unobservedExceptionState = null!;
 	    [Dependency] private readonly IErrorStateController _errorStateController = null!;
 
 	    public async UniTask Run(CancellationToken token)
 	    {
-		    SentrySdk.StartSession();
+		    _errorReporter.StartSession();
 		    _main.Start();
 		    
 		    while (true)
@@ -86,8 +86,8 @@ namespace DeepForestLabs.States.Main
 				        _main.DismissingErrorPopup(unhandled);
 			        }
 
-                    SentrySdk.EndSession();
-                    SentrySdk.StartSession();
+                    _errorReporter.EndSession();
+                    _errorReporter.StartSession();
 
                     _main.PostRestart();
 		        }
@@ -100,7 +100,7 @@ namespace DeepForestLabs.States.Main
 			        Log.Exception(critical, "Critical MainState Exception");
 			        
 			        CaptureSentryTags(critical);
-			        SentrySdk.CaptureException(critical);
+			        _errorReporter.CaptureException(critical);
 			        return;
 		        }
 	        }
@@ -114,14 +114,14 @@ namespace DeepForestLabs.States.Main
 	    private void CaptureSentryTags(Exception unhandled)
         {
 	        IDictionary<string, string> tags;
-	        if (!unhandled.Data.Contains(SentryWrapper.EXCEPTIONS_DATA_TAG))
+	        if (!unhandled.Data.Contains(SentryErrorReporter.EXCEPTIONS_DATA_TAG))
 	        {
 		        tags = new Dictionary<string, string>();
-		        unhandled.Data[SentryWrapper.EXCEPTIONS_DATA_TAG] = tags;
+		        unhandled.Data[SentryErrorReporter.EXCEPTIONS_DATA_TAG] = tags;
 	        }
 	        else
 	        {
-		        tags = (unhandled.Data[SentryWrapper.EXCEPTIONS_DATA_TAG] as IDictionary<string, string>)!;
+		        tags = (unhandled.Data[SentryErrorReporter.EXCEPTIONS_DATA_TAG] as IDictionary<string, string>)!;
 	        }
 	        
 	        tags["_unhandledSinceLaunch"] = DeepForestLabs.Main.UnhandledExceptionsSinceLaunch.ToString();

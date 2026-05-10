@@ -16,6 +16,12 @@ namespace DeepForestLabs.Utils
 				return RuntimePlatform.OSXPlayer;
 #elif UNITY_STANDALONE_WIN
 				return RuntimePlatform.WindowsPlayer;
+#elif UNITY_STANDALONE_LINUX
+				return RuntimePlatform.LinuxPlayer;
+#elif UNITY_WEBGL
+				return RuntimePlatform.WebGLPlayer;
+#else
+				return Application.platform;
 #endif
 			}
 		}
@@ -32,6 +38,12 @@ namespace DeepForestLabs.Utils
 				return "OSX";
 #elif UNITY_STANDALONE_WIN
 				return "Windows";
+#elif UNITY_STANDALONE_LINUX
+				return "Linux";
+#elif UNITY_WEBGL
+				return "WebGL";
+#else
+				return "Unknown";
 #endif
 			}
 		}

@@ -12,9 +12,9 @@ namespace DeepForestLabs.Logger
     public static partial class Log
     {
         private const string DEBUG_ERROR_PREFIX =
-#if NOT_RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS && UNITY_EDITOR
+#if !RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS && UNITY_EDITOR
         "<color=\"red\">DEBUG ERROR</color>: ";
-#elif NOT_RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS
+#elif !RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS
 		"DEBUG ERROR: ";
 #else
         "";

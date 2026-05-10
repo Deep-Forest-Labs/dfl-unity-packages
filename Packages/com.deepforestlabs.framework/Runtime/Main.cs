@@ -6,9 +6,9 @@ using DeepForestLabs.Logger;
 using Cysharp.Threading.Tasks;
 using DeepForestLabs.States.Main;
 using DeepForestLabs.Utils;
-using IOSSettingsBundle;
+using DeepForestLabs.Services;
+using DeepForestLabs.Settings;
 using JetBrains.Annotations;
-using Sentry.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,6 +32,7 @@ namespace DeepForestLabs
         private static CancellationTokenSource? _runScope = null;
         private static IContainer? _container = null;
         private static MainState? _mainState = null;
+        private static IErrorReporter? _errorReporter = null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         private static void BeforeSplashScreen()
@@ -67,9 +68,9 @@ namespace DeepForestLabs
             Application.lowMemory += () => Log.Warning("OnLowMemory");
             Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
             Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
-            Screen.orientation = ScreenOrientation.Portrait;
-            Screen.autorotateToPortrait = false;
-            Screen.autorotateToPortraitUpsideDown = false;
+            Screen.orientation = build.Orientation;
+            Screen.autorotateToPortrait = build.Orientation == ScreenOrientation.AutoRotation;
+            Screen.autorotateToPortraitUpsideDown = build.Orientation == ScreenOrientation.AutoRotation;
             SettingsBundle.AppVersion = build.ShortVersion;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             Application.targetFrameRate = build.TargetFps;
@@ -111,6 +112,7 @@ namespace DeepForestLabs
                                  .AddScoped<MainState>()
                                  .Build(token))
                 {
+                    _errorReporter = _container.Get<IErrorReporter>();
                     _mainState = _container.Get<MainState>();
                     await _mainState.Run(token);
                 }
@@ -121,16 +123,7 @@ namespace DeepForestLabs
             }
             catch (Exception unhandled)
             {
-                bool sendToSentry = true;
-#if UNITY_EDITOR
-                Sentry.Unity.ScriptableSentryUnityOptions options =
-                    Resources.Load<Sentry.Unity.ScriptableSentryUnityOptions>("Sentry/SentryOptions");
-                sendToSentry &= options.CaptureInEditor;
-#endif
-                if (sendToSentry)
-                {
-                    SentrySdk.CaptureException(unhandled);
-                }
+                _errorReporter?.CaptureException(unhandled);
                 throw;
             }
             finally
@@ -145,10 +138,10 @@ namespace DeepForestLabs
                     await _container.DisposeAsync();
                 }
                 _container = null;
+                _errorReporter = null;
                 
                 OnExit?.Invoke();
                 Log.Info(APPLICATION_SHUTTING_DOWN);
-                SentrySdk.AddBreadcrumb(APPLICATION_SHUTTING_DOWN);
 
 #if UNITY_EDITOR
                 if (UnityEditor.EditorApplication.isPlaying)

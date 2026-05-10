@@ -6,7 +6,7 @@ using System.Linq;
 using DeepForestLabs.BuildSystems.AddressablesBuildScripts;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
-using Unity.Android.Types;
+using DeepForestLabs.BuildSystems.PlatformSetup;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -16,7 +16,6 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
 
 // ReSharper disable Unity.DuplicateShortcut
 
@@ -39,6 +38,7 @@ namespace DeepForestLabs.BuildSystems
 	    private const string BUILD_APP_BUNDLE = "-buildAppBundle";
 	    private const string SCRIPTING_DEFINES = "-scriptingDefines";
 	    private const string OVERRIDE_ENVIRONMENT_FILE = "-overrideEnvironmentUrl";
+	    private const string PLATFORM_ARGS = "-platformArgs";
 	    private const string FAILED_BUILD_LOG_FORMAT = "Client player build failed with {0} error(s) after {1:hh\\:mm\\:ss}.";
 
 	    [MenuItem("Build/Run _F5", false, 2)]
@@ -51,7 +51,7 @@ namespace DeepForestLabs.BuildSystems
 
 		    CommandLineArgs args = ReadArgs();
 		    BuildSettingsEditor.Write(args);
-		    SetupProjectSetting(args);
+		    PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
 
 			EditorSceneManager.OpenScene(EditorBuildSettings.scenes[0].path);
 			EditorApplication.EnterPlaymode();
@@ -105,7 +105,7 @@ namespace DeepForestLabs.BuildSystems
 	        }
 	        CommandLineArgs args = ReadArgs();
 	        BuildSettingsEditor.Write(args);
-	        SetupProjectSetting(args);
+	        PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
 	        AddressableAssetSettings aas = AddressableAssetSettingsDefaultObject.Settings;
 
 	        try
@@ -159,7 +159,7 @@ namespace DeepForestLabs.BuildSystems
             
             CommandLineArgs args = ReadArgs();
             BuildSettingsEditor.Write(args);
-            SetupProjectSetting(args);
+            PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
 
             try
             {
@@ -358,10 +358,11 @@ namespace DeepForestLabs.BuildSystems
 		        string scriptingDefines = reader.StringArgument(SCRIPTING_DEFINES, string.Empty);
 		        string overrideEnvironmentFile = reader.StringArgument(OVERRIDE_ENVIRONMENT_FILE, string.Empty);
 		        BuildOptions buildOptions = isDebugBuild ? bss.DebugBuildOptions : bss.ReleaseBuildOptions;
+		        Dictionary<string, string> platformArgs = ParsePlatformArgs(reader.StringArgument(PLATFORM_ARGS, string.Empty));
 
 		        args = new CommandLineArgs(buildTarget, isCommandLineBuild, buildNumber, version, shortVersion,
 			        environment, uniqueId, assetId, enableJsonCatalog, contentStatePath, isDebugBuild, isReleaseBuild, 
-			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions);
+			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions, platformArgs);
 
 		        if (!string.IsNullOrEmpty(args.OverrideEnvironmentUri))
 		        {
@@ -382,9 +383,10 @@ namespace DeepForestLabs.BuildSystems
 	        }
 	        else
 	        {
+		        IPlatformBuildSetup platformSetup = PlatformBuildSetupResolver.Resolve();
 		        BuildSettings bs = BuildSettings.Instance;
 		        string buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
-		        int buildNumber = PlayerSettings.Android.bundleVersionCode;
+		        int buildNumber = platformSetup.GetBuildNumber();
 		        string[] versionParts = PlayerSettings.bundleVersion.Split('.');
 		        string version = ZString.Format("{0}.{1}.{2} ({3})", versionParts[0], versionParts[1], versionParts[2], buildNumber);
 		        string shortVersion = ZString.Format("{0}.{1}.{2}", versionParts[0], versionParts[1], versionParts[2]);
@@ -402,37 +404,31 @@ namespace DeepForestLabs.BuildSystems
 		        string scriptingDefines = string.Empty;
 		        string overrideEnvironmentFile = EnvironmentsDownloader.DEFAULT_URL;
 		        BuildOptions buildOptions = isDebugBuild ? bss.DebugBuildOptions : bss.ReleaseBuildOptions;
+		        Dictionary<string, string> platformArgs = platformSetup.GetDefaultPlatformArgs();
 
 		        args = new CommandLineArgs(buildTarget, isCommandLineBuild, buildNumber, version, shortVersion,
 			        environment, uniqueId, assetId, enableJsonCatalog, contentStatePath, isDebugBuild, isReleaseBuild, 
-			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions);
+			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions, platformArgs);
 	        }
 
 		    return args;
         }
 
-        private static void SetupProjectSetting(CommandLineArgs args)
+        private static Dictionary<string, string> ParsePlatformArgs(string raw)
         {
-            // Running in OptimizeSpeed can cause issues with Generic JsonConverter AOT
-            // Leave as OptimizeSize until addressed. Must be set on all builds as it's a Unity setting,
-            // not a project setting.
-            /*EditorUserBuildSettings.il2CppCodeGeneration = args.IsReleaseBuild
-				? Il2CppCodeGeneration.OptimizeSpeed
-				: Il2CppCodeGeneration.OptimizeSize;*/
-
-            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget.iOS, Il2CppCodeGeneration.OptimizeSize);
-            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget.Android, Il2CppCodeGeneration.OptimizeSize);
-	        EditorUserBuildSettings.buildAppBundle = args.BuildAppBundle;
-	        EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
-	        EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
-	        PlayerSettings.Android.splitApplicationBinary = args.BuildAppBundle;
-	        UnityEditor.Android.UserBuildSettings.DebugSymbols.level = args.IsReleaseBuild && !args.IsDebugBuild
-		        ? DebugSymbolLevel.SymbolTable
-		        : DebugSymbolLevel.Full;
-
-	        AssetDatabase.SaveAssets();
+            var result = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(raw)) return result;
+            foreach (string pair in raw.Split(','))
+            {
+                int eqIndex = pair.IndexOf('=');
+                if (eqIndex > 0)
+                {
+                    result[pair.Substring(0, eqIndex).Trim()] = pair.Substring(eqIndex + 1).Trim();
+                }
+            }
+            return result;
         }
-        
+
         private static void Validate(BuildReport report, ILogFilter? filter = null)
         {
 	        int errorCount = 0;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DeepForestLabs.Logger;
 
-#if NOT_RELEASE_BUILD
+#if !RELEASE_BUILD
 using System.Threading;
 using DeepForestLabs.BuildSystems;
 using Cysharp.Text;
@@ -15,7 +15,7 @@ namespace DeepForestLabs
 {
     internal sealed partial class ContainerBuilder
     {
-#if NOT_RELEASE_BUILD
+#if !RELEASE_BUILD
         private readonly HashSet<Type> _registered = new();
         private readonly List<DiException> _registeredExceptions = new();
 #endif
@@ -23,7 +23,7 @@ namespace DeepForestLabs
         [System.Diagnostics.Conditional("DEBUG_CONTAINER")]
         private void ValidatePreBuild()
         {
-#if NOT_RELEASE_BUILD
+#if !RELEASE_BUILD
             if (_registeredExceptions.Count == 0)
             {
                 return;
@@ -64,7 +64,7 @@ namespace DeepForestLabs
         [System.Diagnostics.Conditional("DEBUG_CONTAINER")]
         private void Validate(Type type)
         {
-#if NOT_RELEASE_BUILD
+#if !RELEASE_BUILD
             if (!_registered.Add(type))
             {
                 string message = ZString.Format("Duplicate registration for type {0}.",
@@ -74,7 +74,7 @@ namespace DeepForestLabs
             }
 #endif
         }
-#if NOT_RELEASE_BUILD
+#if !RELEASE_BUILD
         private static async UniTask InitializeAndLog(string name, IInitializable initializable, CancellationToken token)
         {
             InternalUtils.VerboseLog(name, ZString.Format("Initializing {0}.", InternalUtils.FormatTypeName(initializable.GetType())), ContainerLogFlag.Initialization);

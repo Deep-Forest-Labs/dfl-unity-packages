@@ -7,8 +7,6 @@ using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using DeepForestLabs.States.UnobservedExceptions;
 using JetBrains.Annotations;
-using Sentry;
-using Sentry.Unity;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -17,6 +15,7 @@ namespace DeepForestLabs.Services
     public sealed class LoggingService : ILogHandler, ILoggingService, IInitializable, IDisposable
     {
         [Dependency] private readonly ILogFilter _logFilter = null!;
+        [Dependency] private readonly IErrorReporter _errorReporter = null!;
         [Dependency] private readonly UnobservedExceptionState _unobservedExceptionState = null!;
         [Dependency] private readonly IAnalyticsErrorHelper _analyticsErrorHelper = null!;
 
@@ -25,13 +24,7 @@ namespace DeepForestLabs.Services
 
         public UniTask Initialize(CancellationToken token)
         {
-#if UNITY_EDITOR
-            Sentry.Unity.ScriptableSentryUnityOptions options =
-                Resources.Load<Sentry.Unity.ScriptableSentryUnityOptions>("Sentry/SentryOptions");
-            _captureEvents = options.CaptureInEditor;
-#else
-            _captureEvents = true;
-#endif
+            _captureEvents = _errorReporter.IsEnabled;
             
             _unityLogHandler = Debug.unityLogger.logHandler;
             Debug.unityLogger.logHandler = this;
@@ -126,27 +119,22 @@ namespace DeepForestLabs.Services
             {
                 if (!_logFilter.IsIgnoredException(e))
                 {
-                    // Send to Sentry
-                    SentryId id = SentrySdk.CaptureException(e, scope =>
+                    _errorReporter.CaptureException(e, scope =>
                     {
                         SetTags(scope, e, "Log.Exception", false);
-                        scope.Level = SentryLevel.Warning;
+                        scope.Level = ErrorLevel.Warning;
                     });
-                    Log.Debug("Created SentryEvent with id: {0}", id);
                 }
 
-                // Send to Analytics
                 _analyticsErrorHelper.Log(e.Message, e.StackTrace, LogType.Exception);
             }
             else
             {
                 if (_logFilter.IsIgnoredException(e))
                 {
-                    // Add breadcrumb to Sentry
-                    SentrySdk.AddBreadcrumb(ZString.Format("{0}\n{1}", e.Message, e.StackTrace), category: "Log.Exception", level: BreadcrumbLevel.Error);
+                    _errorReporter.AddBreadcrumb(ZString.Format("{0}\n{1}", e.Message, e.StackTrace), category: "Log.Exception", level: ErrorLevel.Error);
                 }
 
-                // Send to Analytics
                 _analyticsErrorHelper.Log(e.Message, e.StackTrace, LogType.Exception);
             }
         }
@@ -162,8 +150,7 @@ namespace DeepForestLabs.Services
             // Forward to Unity's ILogHandler
             _unityLogHandler?.LogFormat(logType, context, format, args);
 
-            // Add Sentry breadcrumb
-            SentrySdk.AddBreadcrumb(formatted, category: "Log.Info", level: BreadcrumbLevel.Info);
+            _errorReporter.AddBreadcrumb(formatted, category: "Log.Info", level: ErrorLevel.Info);
 
             // Add to analytics, but too noisy and web request intensive.
             //_analyticsLogHandler.AnalyticsLog(condition, null, LogType.Log);
@@ -180,8 +167,7 @@ namespace DeepForestLabs.Services
             // Forward to Unity's ILogHandler
             _unityLogHandler?.LogFormat(logType, context, format, args);
 
-            // Add Sentry breadcrumb
-            SentrySdk.AddBreadcrumb(formatted, category: "Log.Warning", level: BreadcrumbLevel.Warning);
+            _errorReporter.AddBreadcrumb(formatted, category: "Log.Warning", level: ErrorLevel.Warning);
 
             // Add to analytics, but too noisy and web request intensive.
             //_analyticsLogHandler.AnalyticsLog(condition, null, LogType.Warning);
@@ -198,8 +184,7 @@ namespace DeepForestLabs.Services
             // Forward to Unity's ILogHandler
             _unityLogHandler?.LogFormat(logType, context, format, args);
 
-            // Add Sentry breadcrumb
-            SentrySdk.AddBreadcrumb(formatted, category: "Log.Assert", level: BreadcrumbLevel.Error);
+            _errorReporter.AddBreadcrumb(formatted, category: "Log.Assert", level: ErrorLevel.Error);
 
             // Add to analytics
             _analyticsErrorHelper.Log(formatted, null, LogType.Assert);
@@ -222,22 +207,17 @@ namespace DeepForestLabs.Services
 
             if (_captureEvents)
             {
-                // Send to Sentry
-                SentryId id = SentrySdk.CaptureMessage(formatted, scope =>
+                _errorReporter.CaptureMessage(formatted, scope =>
                 {
                     SetTags(scope, null, logType.ToString(), true);
-                }, SentryLevel.Warning);
-                Log.Debug("Created SentryEvent with id: {0}", id);
-				
-                // Send to Analytics
+                    scope.Level = ErrorLevel.Warning;
+                });
+
                 _analyticsErrorHelper.Log(formatted, string.Empty, LogType.Error);
             }
             else
             {
-                // Add breadcrumb to Sentry
-                SentrySdk.AddBreadcrumb(formatted, category:logType.ToString(), level: BreadcrumbLevel.Error);
-                
-                // Send to Analytics
+                _errorReporter.AddBreadcrumb(formatted, category: logType.ToString(), level: ErrorLevel.Error);
                 _analyticsErrorHelper.Log(formatted, string.Empty, LogType.Error);
             }
         }
@@ -259,22 +239,17 @@ namespace DeepForestLabs.Services
 
             if (_captureEvents)
             {
-                // Send to Sentry
-                SentryId id = SentrySdk.CaptureMessage(message, scope =>
+                _errorReporter.CaptureMessage(message, scope =>
                 {
                     SetTags(scope, null, logType.ToString(), true);
-                }, SentryLevel.Warning);
-                Log.Debug("Created SentryEvent with id: {0}", id);
-				
-                // Send to Analytics
+                    scope.Level = ErrorLevel.Warning;
+                });
+
                 _analyticsErrorHelper.Log(message, string.Empty, LogType.Error);
             }
             else
             {
-                // Add breadcrumb to Sentry
-                SentrySdk.AddBreadcrumb(message, category:logType.ToString(), level: BreadcrumbLevel.Error);
-                
-                // Send to Analytics
+                _errorReporter.AddBreadcrumb(message, category: logType.ToString(), level: ErrorLevel.Error);
                 _analyticsErrorHelper.Log(message, string.Empty, LogType.Error);
             }
         }
@@ -291,29 +266,23 @@ namespace DeepForestLabs.Services
 
             if (_captureEvents)
             {
-                // Send to Sentry
-                SentryId id = SentrySdk.CaptureException(e, scope =>
+                _errorReporter.CaptureException(e, scope =>
                 {
                     SetTags(scope, e, "Log.Exception", false);
-                    scope.Level = SentryLevel.Warning;
+                    scope.Level = ErrorLevel.Warning;
                 });
-                Log.Debug("Created SentryEvent with id: {0}", id);
-				
-                // Send to Analytics
+
                 _analyticsErrorHelper.Log(e.Message, e.StackTrace, LogType.Error);
             }
             else
             {
-                // Add breadcrumb to Sentry
-                SentrySdk.AddBreadcrumb(ZString.Format("{0}\n{1}", e.Message, e.StackTrace), category:"Log.Exception", level: BreadcrumbLevel.Error);
-                
-                // Send to Analytics
+                _errorReporter.AddBreadcrumb(ZString.Format("{0}\n{1}", e.Message, e.StackTrace), category: "Log.Exception", level: ErrorLevel.Error);
                 _analyticsErrorHelper.Log(e.Message, e.StackTrace, LogType.Error);
             }
         }
 
         [HideInCallstack]
-        private static void SetTags(Scope scope, Exception? e, string mechanism,
+        private static void SetTags(IErrorReporterScope scope, Exception? e, string mechanism,
             bool handled)
         {
             if (e == null)
@@ -322,14 +291,14 @@ namespace DeepForestLabs.Services
             }
             
             IDictionary<string, string> tags;
-            if (!e.Data.Contains(SentryWrapper.EXCEPTIONS_DATA_TAG))
+            if (!e.Data.Contains(SentryErrorReporter.EXCEPTIONS_DATA_TAG))
             {
                 tags = new Dictionary<string, string>();
-                e.Data[SentryWrapper.EXCEPTIONS_DATA_TAG] = tags;
+                e.Data[SentryErrorReporter.EXCEPTIONS_DATA_TAG] = tags;
             }
             else
             {
-                tags = (e.Data[SentryWrapper.EXCEPTIONS_DATA_TAG] as IDictionary<string, string>)!;
+                tags = (e.Data[SentryErrorReporter.EXCEPTIONS_DATA_TAG] as IDictionary<string, string>)!;
             }
             
             tags["handled"] = handled ? "yes" : "no";

@@ -4,6 +4,8 @@ using UnityEngine;
 
 namespace DeepForestLabs.BuildSystems
 {
+    public enum AssetLoadStrategy { RemoteCDN, LocalBundles }
+
     [Serializable]
     public sealed class AddressablesBuildSettings
     {
@@ -12,10 +14,12 @@ namespace DeepForestLabs.BuildSystems
         [SerializeField] internal string _assetId = RELEASE_ASSET_ID;
         [SerializeField] internal bool _enableJsonCatalog = false;
         [SerializeField] [HideInInspector] internal BuilderIndex _activePlayModeIndex;
+        [SerializeField] internal AssetLoadStrategy _loadStrategy = AssetLoadStrategy.RemoteCDN;
 
         public string UniqueId => _uniqueId;
         public string AssetId => _assetId;
         public bool EnableJsonCatalog => _enableJsonCatalog;
+        public AssetLoadStrategy LoadStrategy => _loadStrategy;
 #if UNITY_EDITOR
         public BuilderIndex ActivePlayModeIndex => _activePlayModeIndex;
 #endif

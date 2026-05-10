@@ -12,9 +12,9 @@ namespace DeepForestLabs.Logger
     public static partial class Log
     {
         private const string DEBUG_LOG_PREFIX =
-#if NOT_RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS && UNITY_EDITOR
+#if !RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS && UNITY_EDITOR
         "<color=\"yellow\">DEBUG</color>: ";
-#elif NOT_RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS
+#elif !RELEASE_BUILD || RELEASE_WITH_DEBUG_LOGS
 		"DEBUG: ";
 #else
         "";

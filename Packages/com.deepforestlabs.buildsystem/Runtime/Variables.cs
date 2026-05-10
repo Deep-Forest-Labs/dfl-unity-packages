@@ -52,6 +52,10 @@ namespace DeepForestLabs.BuildSystems
         private static string GetLocalLoadPath()
         {
 #if !UNITY_EDITOR
+            if (BuildSettings.Instance.Addressables.LoadStrategy == AssetLoadStrategy.LocalBundles)
+            {
+                return UnityEngine.AddressableAssets.Addressables.RuntimePath;
+            }
             return UnityEngine.AddressableAssets.Addressables.RuntimePath;
 #else
             AddressablesBuildSettings abs = BuildSettings.Instance.Addressables;
@@ -86,6 +90,10 @@ namespace DeepForestLabs.BuildSystems
         private static string GetRemoteLoadPath()
         {
 #if !UNITY_EDITOR
+            if (BuildSettings.Instance.Addressables.LoadStrategy == AssetLoadStrategy.LocalBundles)
+            {
+                return UnityEngine.AddressableAssets.Addressables.RuntimePath;
+            }
             Log.Assert(_cdn != null, nameof(_cdn) + " != null");
             return _cdn;
 #else

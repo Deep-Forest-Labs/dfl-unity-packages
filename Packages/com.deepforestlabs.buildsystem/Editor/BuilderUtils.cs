@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DeepForestLabs.BuildSystems.PlatformSetup;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -113,58 +114,17 @@ namespace DeepForestLabs.BuildSystems
 
 		private static string GetOutputPath(CommandLineArgs args)
 		{
-			string outputLocation = GetBuildPath();
-			if (!Directory.Exists(outputLocation))
+			string basePath = GetBuildPath();
+			if (!Directory.Exists(basePath))
 			{
-				Directory.CreateDirectory(outputLocation);
+				Directory.CreateDirectory(basePath);
 			}
 
-			// The xcode project is output to an intermediate file which is compiled later
-			if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
-			{
-				outputLocation += "xcodefiles";
-				if (!Directory.Exists(outputLocation))
-				{
-					Directory.CreateDirectory(outputLocation);
-				}
-			}
-
-			// Set Android specific build settings and options.
-			if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
-			{
-				// If building Android App Bundle append the desired name for the AAB file.
-				// If building a single APK append the desired name for the APK file.
-				// If building split APKs only provide the directory and Unity will choose the names.
-				if (args.BuildAppBundle)
-				{
-					outputLocation = Path.Combine(outputLocation,
-						AndroidAABName(args.Environment, args.BuildNumber, args.UniqueId));
-				}
-				else if (!PlayerSettings.Android.buildApkPerCpuArchitecture)
-				{
-					outputLocation = Path.Combine(outputLocation,
-						AndroidAPKName(args.Environment, args.BuildNumber, args.UniqueId));
-				}
-			}
-
-			return outputLocation;
+			return PlatformBuildSetupResolver.Resolve().GetOutputPath(args, basePath);
 		}
 
 		public static string AndroidAPKName(string environment, int buildNumber, string uniqueId)
-		{
-			string result = PlayerSettings.productName.Replace(" ", string.Empty);
-			result = ZString.Format("{0}_{1}_{2}_{3}.apk", result, uniqueId, buildNumber, environment.ToLower());
-
-			return result;
-		}
-
-		private static string AndroidAABName(string environment, int buildNumber, string uniqueId)
-		{
-			string result = PlayerSettings.productName.Replace(" ", string.Empty);
-			result = ZString.Format("{0}_{1}_{2}_{3}.aab", result, uniqueId, buildNumber, environment.ToLower());
-
-			return result;
-		}
+			=> AndroidBuildSetup.AndroidAPKName(environment, buildNumber, uniqueId);
 	}
 }
 #nullable disable

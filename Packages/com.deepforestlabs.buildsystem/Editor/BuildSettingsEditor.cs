@@ -33,6 +33,7 @@ namespace DeepForestLabs.BuildSystems
         private SerializedProperty _isReleaseBuildProp = null!;
         private SerializedProperty _testFlightBuildProp = null!;
         private SerializedProperty _scriptingDefinesProp = null!;
+        private SerializedProperty _orientationProp = null!;
         private SerializedProperty _targetFpsProp = null!;
         private SerializedProperty _vscyncCountProp = null!;
         private SerializedProperty _analyticsAppidProp = null!;
@@ -43,6 +44,7 @@ namespace DeepForestLabs.BuildSystems
         private SerializedProperty _uniqueIdProp = null!;
         private SerializedProperty _assetIdProp = null!;
         private SerializedProperty _enableJsonCatalogProp = null!;
+        private SerializedProperty _loadStrategyProp = null!;
         private SerializedProperty _activePlayModeIndex = null!;
 
         // Environment Build Settings
@@ -252,6 +254,7 @@ namespace DeepForestLabs.BuildSystems
                 EditorGUILayout.PropertyField(_isDebugBuildProp);
                 EditorGUILayout.PropertyField(_isReleaseBuildProp);
                 EditorGUILayout.PropertyField(_scriptingDefinesProp);
+                EditorGUILayout.PropertyField(_orientationProp);
 
                 GUI.enabled = true;
             }
@@ -294,6 +297,7 @@ namespace DeepForestLabs.BuildSystems
                     _assetIdProp.stringValue = AddressablesBuildSettings.RELEASE_ASSET_ID;
                 }
                 EditorGUILayout.PropertyField(_enableJsonCatalogProp);
+                EditorGUILayout.PropertyField(_loadStrategyProp);
                 GUI.enabled = true;
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
@@ -312,6 +316,7 @@ namespace DeepForestLabs.BuildSystems
             _isReleaseBuildProp = serializedObject.FindProperty(nameof(BuildSettings._isReleaseBuild))!;
             _testFlightBuildProp = serializedObject.FindProperty(nameof(BuildSettings._isTestFlightBuild))!;
             _scriptingDefinesProp = serializedObject.FindProperty(nameof(BuildSettings._scriptingDefines))!;
+            _orientationProp = serializedObject.FindProperty(nameof(BuildSettings._orientation))!;
             _targetFpsProp = serializedObject.FindProperty(nameof(BuildSettings._targetFps))!;
             _vscyncCountProp = serializedObject.FindProperty(nameof(BuildSettings._vscyncCount))!;
             _analyticsAppidProp = serializedObject.FindProperty(nameof(BuildSettings._analyticsAppid))!;
@@ -323,6 +328,7 @@ namespace DeepForestLabs.BuildSystems
             _uniqueIdProp = addressables.FindPropertyRelative(ZString.Format("{0}", nameof(AddressablesBuildSettings._uniqueId)));
             _assetIdProp = addressables.FindPropertyRelative(ZString.Format("{0}", nameof(AddressablesBuildSettings._assetId)));
             _enableJsonCatalogProp = addressables.FindPropertyRelative(ZString.Format("{0}", nameof(AddressablesBuildSettings._enableJsonCatalog)));
+            _loadStrategyProp = addressables.FindPropertyRelative(ZString.Format("{0}", nameof(AddressablesBuildSettings._loadStrategy)));
             _activePlayModeIndex = addressables.FindPropertyRelative(ZString.Format("{0}", nameof(AddressablesBuildSettings._activePlayModeIndex)));
 
             // Environment

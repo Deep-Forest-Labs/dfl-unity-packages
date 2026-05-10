@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 
 namespace DeepForestLabs.BuildSystems
@@ -24,11 +25,12 @@ namespace DeepForestLabs.BuildSystems
         public string ScriptingDefines { get; }
         public string OverrideEnvironmentUri { get; }
         public BuildOptions BuildOptions { get; }
+        public Dictionary<string, string> PlatformArgs { get; }
 
         public CommandLineArgs(string buildTarget, bool isCommandLineBuild, int buildNumber, string version, string shortVersion,
             string environment, string uniqueId, string assetId, bool enableJsonCatalog, string contentStateDataPath, bool isDebugBuild,
             bool isReleaseBuild, bool isTestFlightBuild, bool buildAppBundle, string scriptingDefines, 
-            string overrideEnvironmentUri, BuildOptions buildOptions)
+            string overrideEnvironmentUri, BuildOptions buildOptions, Dictionary<string, string>? platformArgs = null)
         {
             BuildTarget = buildTarget;
             IsCommandLineBuild = isCommandLineBuild;
@@ -47,6 +49,7 @@ namespace DeepForestLabs.BuildSystems
             ScriptingDefines = scriptingDefines;
             OverrideEnvironmentUri = overrideEnvironmentUri;
             BuildOptions = buildOptions;
+            PlatformArgs = platformArgs ?? new Dictionary<string, string>();
         }
     }
 }

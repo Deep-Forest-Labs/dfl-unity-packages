@@ -28,6 +28,7 @@ namespace DeepForestLabs.BuildSystems
 		[SerializeField] internal string _analyticsSubversion = "1.6.0";
 		[SerializeField] internal ContainerLogFlag _containerLogFlag;
 		[SerializeField] internal EnvironmentBuildSettings _environment;
+		[SerializeField] internal ScreenOrientation _orientation = ScreenOrientation.Portrait;
 		[SerializeField] internal AddressablesBuildSettings _addressables = null!;
 
 		public string BuildTarget => _buildTarget;
@@ -47,6 +48,7 @@ namespace DeepForestLabs.BuildSystems
 		public string AnalyticsSubversion => _analyticsSubversion;
 		public ContainerLogFlag ContainerLogFlag => _containerLogFlag;
 		public EnvironmentBuildSettings Environment => _environment;
+		public ScreenOrientation Orientation => _orientation;
 		public AddressablesBuildSettings Addressables => _addressables;
 
 		private static BuildSettings Load()

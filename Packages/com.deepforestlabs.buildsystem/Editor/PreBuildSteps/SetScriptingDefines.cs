@@ -1,5 +1,4 @@
-﻿using System;
-using DeepForestLabs.Logger;
+﻿using DeepForestLabs.Logger;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -12,18 +11,17 @@ namespace DeepForestLabs.BuildSystems.PreBuildSteps
 
 		public void OnPreprocessBuild(BuildReport report)
 		{
-			NamedBuildTarget buildTarget;
-			switch (report.summary.platform)
+			NamedBuildTarget buildTarget = report.summary.platform switch
 			{
-				case BuildTarget.iOS:
-					buildTarget = NamedBuildTarget.iOS;
-					break;
-			
-				case BuildTarget.Android:
-				default:
-					buildTarget = NamedBuildTarget.Android;
-					break;
-			}
+				BuildTarget.iOS => NamedBuildTarget.iOS,
+				BuildTarget.Android => NamedBuildTarget.Android,
+				BuildTarget.StandaloneWindows64 => NamedBuildTarget.Standalone,
+				BuildTarget.StandaloneWindows => NamedBuildTarget.Standalone,
+				BuildTarget.StandaloneOSX => NamedBuildTarget.Standalone,
+				BuildTarget.StandaloneLinux64 => NamedBuildTarget.Standalone,
+				BuildTarget.WebGL => NamedBuildTarget.WebGL,
+				_ => throw new BuildFailedException($"Unsupported platform: {report.summary.platform}")
+			};
 
 			BuildSettings buildSettings = BuildSettings.Instance;
 			string currentDefines = PlayerSettings.GetScriptingDefineSymbols(buildTarget);
