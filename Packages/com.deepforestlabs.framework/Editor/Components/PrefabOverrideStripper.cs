@@ -161,7 +161,7 @@ namespace DeepForestLabs.Components
                 case SerializedPropertyType.Color:
                     return a.colorValue == b.colorValue;
                 case SerializedPropertyType.ObjectReference:
-                    return a.objectReferenceInstanceIDValue == b.objectReferenceInstanceIDValue;
+                    return a.objectReferenceEntityIdValue == b.objectReferenceEntityIdValue;
                 case SerializedPropertyType.LayerMask:
                     return a.intValue == b.intValue;
                 case SerializedPropertyType.Enum:

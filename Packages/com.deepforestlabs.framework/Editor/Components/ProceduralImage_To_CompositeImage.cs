@@ -338,7 +338,7 @@ namespace DeepForestLabs.Components
                     Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
                 // Use reflection to check for ProceduralImage or FilterBase in scene
                 bool found = false;
-                foreach (Component c in Object.FindObjectsByType<Component>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (Component c in Object.FindObjectsByType<Component>(FindObjectsInactive.Include))
                 {
                     if (c != null)
                     {

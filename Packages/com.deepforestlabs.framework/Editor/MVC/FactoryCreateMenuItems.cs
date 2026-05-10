@@ -139,7 +139,10 @@ namespace DeepForestLabs.MVC
         {
             //HACK - for PK - get 2.5.0 out quicker than configurable solution
             name = type.Name.Replace("Factory", string.Empty);
-            path = type.Namespace?.Replace(".Factories", "")?.Replace('.', '/') ?? throw new Exception();
+            path = type.Namespace?.Replace(".Factories", "")?.Replace('.', '/')
+                ?? throw new InvalidOperationException(
+                    $"Factory type '{type.FullName ?? type.Name}' must be declared inside a namespace. " +
+                    $"Add a namespace to the file containing '{type.Name}' (e.g. 'namespace MyGame.Factories').");
             shortcut = string.Empty;
             priority = default;
             FactoryMenuItemAttribute? menuItem = type.GetCustomAttribute<FactoryMenuItemAttribute>();
