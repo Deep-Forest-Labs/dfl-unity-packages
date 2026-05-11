@@ -1,0 +1,23 @@
+{
+    "name": "DeepForestLabs.Audio.Tests",
+    "rootNamespace": "DeepForestLabs.Audio.Tests",
+    "references": [
+        "GUID:a8b4c6d2e1f3a5b7c9d0e2f4a6b8c0d2",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:05fc6da811de347179779e0d98423752",
+        "GUID:727469af714124c13aa97897dd0bd66c",
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0acc523941302664db1f4e527237feb3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,18 @@
+{
+    "name": "DeepForestLabs.Audio",
+    "rootNamespace": "DeepForestLabs.Audio",
+    "references": [
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:05fc6da811de347179779e0d98423752",
+        "GUID:727469af714124c13aa97897dd0bd66c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

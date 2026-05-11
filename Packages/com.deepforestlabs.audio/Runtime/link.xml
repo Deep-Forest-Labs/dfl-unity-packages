@@ -1,0 +1,3 @@
+<linker>
+    <assembly fullname="DeepForestLabs.Audio" preserve="all"/>
+</linker>

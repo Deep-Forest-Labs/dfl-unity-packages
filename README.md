@@ -8,14 +8,32 @@ A monorepo hosting the core UPM packages for Deep Forest Labs Unity projects.
 |---------|------|-------------|
 | `com.deepforestlabs.logger` | `Packages/com.deepforestlabs.logger` | Structured logging with filtering and build-time log stripping |
 | `com.deepforestlabs.buildsystem` | `Packages/com.deepforestlabs.buildsystem` | Multi-platform build pipeline (Android, iOS, Windows, WebGL), environment configuration, and Addressables integration |
-| `com.deepforestlabs.framework` | `Packages/com.deepforestlabs.framework` | Core application framework — DI container, MVC, async lifecycle, Addressables management, error reporting abstraction |
+| `com.deepforestlabs.framework` | `Packages/com.deepforestlabs.framework` | Core application framework -- DI container, MVC, async lifecycle, Addressables management, error reporting abstraction |
+| `com.deepforestlabs.audio` | `Packages/com.deepforestlabs.audio` | Audio service -- pooled AudioSource instances, AudioMixer integration, sound catalogs, ducking, DI lifecycle |
+
+## Documentation
+
+Detailed guides live in the [`docs/`](docs/) folder:
+
+| Guide | What it covers |
+|-------|----------------|
+| [Getting Started](docs/getting-started.md) | First-time setup, creating a project, wiring your first service |
+| [Architecture](docs/architecture.md) | Package dependency graph, design philosophy, lifecycle sequence |
+| [Dependency Injection](docs/dependency-injection.md) | Registration API, `[Dependency]` injection, scopes, factories, lifecycle |
+| [Asset Loading](docs/asset-loading.md) | `AssetRef` types, `Checkout`/`Download`, Addressables configuration |
+| [Audio Service](docs/audio-service.md) | Playing sounds, mixer routing, ducking, catalogs, preloading |
+| [Build System](docs/build-system.md) | Build pipeline, platform setup, environments, CI integration |
+| [Logging](docs/logging.md) | `Log` API, levels, build-time stripping, filtering |
+| [Testing](docs/testing.md) | Test structure, NUnit patterns, mocking the DI container |
+
+Each package also has its own README with a quick-reference summary.
 
 ## Supported Platforms
 
-- **Android** — full build pipeline with APK/AAB support
-- **iOS** — full build pipeline with Xcode project generation
-- **Windows Standalone** — IL2CPP builds with `.exe` output
-- **WebGL** — IL2CPP builds with configurable compression
+- **Android** -- full build pipeline with APK/AAB support
+- **iOS** -- full build pipeline with Xcode project generation
+- **Windows Standalone** -- IL2CPP builds with `.exe` output
+- **WebGL** -- IL2CPP builds with configurable compression
 
 ### Adding a new platform
 
@@ -34,7 +52,8 @@ Add these packages to your Unity project's `Packages/manifest.json`. For local d
   "dependencies": {
     "com.deepforestlabs.framework": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.framework",
     "com.deepforestlabs.logger": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.logger",
-    "com.deepforestlabs.buildsystem": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.buildsystem"
+    "com.deepforestlabs.buildsystem": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.buildsystem",
+    "com.deepforestlabs.audio": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.audio"
   }
 }
 ```
@@ -49,19 +68,7 @@ For versioned releases, use Git URLs pinned to a tag:
 }
 ```
 
-## Key Abstractions
-
-### IPlatformBuildSetup
-
-Strategy interface for platform-specific build configuration. Each supported platform has an implementation in `Editor/PlatformSetup/`. The resolver (`PlatformBuildSetupResolver`) selects the correct implementation based on the active build target.
-
-### IErrorReporter
-
-Abstraction over crash/error reporting backends. The default `SentryErrorReporter` wraps the Sentry SDK. Projects can register `NullErrorReporter` for platforms where Sentry is unavailable or undesired. Register the desired implementation in your project's `MainArgs.AddToBuilder()`.
-
-### AssetLoadStrategy
-
-Per-project configuration on `AddressablesBuildSettings` that controls whether content bundles are loaded from a remote CDN (`RemoteCDN`) or shipped locally with the build (`LocalBundles`). WebGL projects may prefer `LocalBundles` to avoid re-downloading each session.
+Or use [dfl-unity-template](https://github.com/Deep-Forest-Labs/dfl-unity-template) which comes pre-configured with all packages.
 
 ## Dependencies
 
@@ -93,4 +100,4 @@ The following dependencies resolve automatically from the Unity registry:
 
 ## License
 
-Copyright © 2024 Deep Forest Labs. All rights reserved.
+Copyright (c) 2024 Deep Forest Labs. All rights reserved.
