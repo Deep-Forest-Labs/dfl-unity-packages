@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ZLinq;
 using UnityEngine.Sprites;
 using UnityEngine.UI;
 
@@ -30,11 +31,12 @@ namespace DeepForestLabs.Components
         };
 
 
-        private IEnumerable<UIDefaultImageLayer> GetOrderedLayers()
+        private UIDefaultImageLayer[] GetOrderedLayers()
         {
             return _layers
                 .Where(l => l != null && l.Enabled)
-                .OrderBy(l => _renderOrder.GetValueOrDefault(l.LayerType, int.MaxValue));
+                .OrderBy(l => _renderOrder.GetValueOrDefault(l.LayerType, int.MaxValue))
+                .ToArray();
         }
 
         public float BorderWidth

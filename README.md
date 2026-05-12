@@ -87,7 +87,35 @@ These packages depend on third-party UPM packages that are **not** on the Unity 
   ],
   "dependencies": {
     "com.cysharp.unitask": "2.5.10",
-    "com.cysharp.zstring": "2.6.0"
+    "com.cysharp.zstring": "2.6.0",
+    "com.cysharp.zlinq": "1.5.5"
+  }
+}
+```
+
+### ZLinq Drop-in Generator (recommended for game code)
+
+The framework provides `com.cysharp.zlinq` as a transitive dependency. To automatically optimize all LINQ operations on arrays and lists in your **game code** to zero-allocation:
+
+1. Install [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) (available on OpenUPM as `com.github-glitchenzo.nugetforunity`)
+2. Open **NuGet > Manage NuGet Packages** and install `ZLinq` and `ZLinq.DropInGenerator`
+3. Add an `AssemblyInfo.cs` to your game assembly with:
+
+```csharp
+using ZLinq;
+[assembly: ZLinqDropIn("", DropInGenerateTypes.Array | DropInGenerateTypes.List)]
+```
+
+The framework packages themselves use standard System.Linq internally. Game code written with the drop-in active should use `using ZLinq;` in files with chained LINQ operators and avoid returning `ValueEnumerable` where `IEnumerable<T>` is expected.
+
+### ZLinq.Unity (optional)
+
+For zero-allocation GameObject/Transform traversal (`Descendants()`, `Children()`, `Ancestors()`, etc.), add the Unity extensions package:
+
+```json
+{
+  "dependencies": {
+    "com.cysharp.zlinq.unity": "https://github.com/Cysharp/ZLinq.git?path=src/ZLinq.Unity/Assets/ZLinq.Unity"
   }
 }
 ```

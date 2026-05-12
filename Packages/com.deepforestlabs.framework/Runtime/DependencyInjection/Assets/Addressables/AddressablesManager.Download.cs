@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -319,7 +320,7 @@ namespace DeepForestLabs.Assets.Addressables
                     }
 
                     Log.DebugWarning("Downloading ['{0}'] batch was not successful. Check network.",
-                        string.Join(',', batch.Select(l => l.InternalId)));
+                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
                 }
                 catch (OperationCanceledException)
                 {
@@ -349,7 +350,7 @@ namespace DeepForestLabs.Assets.Addressables
                 if (IsTransient(ex))
                 {
                     Log.DebugException(ex, "Downloading ['{0}'] batch was not successful. Check network.",
-                        string.Join(',', batch.Select(l => l.InternalId)));
+                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
                  
                     await _connectivityService.WaitForConnection(token);
                     continue;
@@ -358,7 +359,7 @@ namespace DeepForestLabs.Assets.Addressables
                 if (LooksLikeCorruption(ex))
                 {
                     Log.DebugException(ex, "Downloading ['{0}'] batch was not successful. One or more files were corrupt.",
-                        string.Join(',', batch.Select(l => l.InternalId)));
+                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
                     
                     // Clear only the dependencies of this key
                     AsyncOperationHandle<bool> clearOperation = AddressablesImpl.ClearDependencyCacheAsync(batch, autoReleaseHandle: true);

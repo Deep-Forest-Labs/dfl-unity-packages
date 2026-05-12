@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using ZLinq;
 using Object = UnityEngine.Object;
 
 namespace DeepForestLabs.Utils
@@ -29,14 +30,16 @@ namespace DeepForestLabs.Utils
         {
             AssetDatabase.ForceReserializeAssets(
                 AssetDatabase.FindAssets("t:ScriptableObject")
-                    .Select(AssetDatabase.GUIDToAssetPath));
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .ToArray());
         }
         
         private static void ExecutePrefabs()
         {
             AssetDatabase.ForceReserializeAssets(
                 AssetDatabase.FindAssets("t:Prefab")
-                    .Select(AssetDatabase.GUIDToAssetPath));
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .ToArray());
         }
         
         private static void ExecuteSelected()

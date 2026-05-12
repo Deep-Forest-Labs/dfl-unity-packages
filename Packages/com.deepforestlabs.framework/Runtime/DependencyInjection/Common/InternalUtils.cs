@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using DeepForestLabs.BuildSystems;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using UnityEngine.Scripting;
@@ -21,7 +22,7 @@ namespace DeepForestLabs.Common
             
             if (genericArguments.Length > 0)
             {
-                return ZString.Format("{0}<{1}>", type.Name, string.Join(',', genericArguments.Select(t => t.Name)));
+                return ZString.Format("{0}<{1}>", type.Name, string.Join(',', genericArguments.Select(t => t.Name).ToArray()));
             }
             else
             {

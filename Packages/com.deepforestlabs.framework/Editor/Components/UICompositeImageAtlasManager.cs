@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DeepForestLabs.Logger;
+using ZLinq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -770,7 +771,7 @@ namespace DeepForestLabs.Components
         private static void EnableOnlyFilter(GameObject go, UICompositeImageLayerType type, HashSet<MonoBehaviour> toggledOff)
         {
             // Disable all GradientImage components
-            IEnumerable<MonoBehaviour> gradients = go.GetComponentsInChildren<MonoBehaviour>(true)
+            var gradients = go.GetComponentsInChildren<MonoBehaviour>(true)
                 .Where(m => m.GetType().Name == "GradientImage" || m.GetType().Name == "Gradient2");
             foreach (MonoBehaviour? gradient in gradients)
             {
@@ -785,7 +786,7 @@ namespace DeepForestLabs.Components
             }
 
             // Force all FilterBase components to white
-            IEnumerable<MonoBehaviour> filters = go.GetComponentsInChildren<MonoBehaviour>(true)
+            var filters = go.GetComponentsInChildren<MonoBehaviour>(true)
                 .Where(m => m.GetType().Name.Contains("Filter"));
             foreach (MonoBehaviour? filter in filters)
             {
@@ -841,7 +842,7 @@ namespace DeepForestLabs.Components
         {
             composite.Mode = UICompositeImageRenderMode.Dynamic;
 
-            IEnumerable<MonoBehaviour> gradients = composite.GetComponentsInChildren<MonoBehaviour>(true)
+            var gradients = composite.GetComponentsInChildren<MonoBehaviour>(true)
                 .Where(m => m.GetType().Name == "GradientImage" || m.GetType().Name == "Gradient2");
             foreach (MonoBehaviour? gradient in gradients)
             {
@@ -854,7 +855,7 @@ namespace DeepForestLabs.Components
                 }
             }
 
-            IEnumerable<MonoBehaviour> filterBases = composite.GetComponentsInChildren<MonoBehaviour>(true)
+            var filterBases = composite.GetComponentsInChildren<MonoBehaviour>(true)
                 .Where(m => m.GetType().Name.Contains("Filter"));
             foreach (MonoBehaviour? filterBase in filterBases)
             {

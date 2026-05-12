@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DeepForestLabs.BuildSystems.PlatformSetup;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
