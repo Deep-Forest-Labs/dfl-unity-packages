@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -19,48 +19,48 @@ namespace DeepForestLabs
     {
         public bool CanLocate(SceneAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
             
         public bool CanLocate(AudioClipAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(MeshAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(SpriteAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(AtlasedSpriteAssetRef assetRef)
         {
             //TODO - add a check that the location points to a sprite atlas with the sprite in it.
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(Texture2DAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(SpriteAtlasAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(ScriptableObjectAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public bool CanLocate(GameObjectAssetRef assetRef)
         {
-            return GetLocations(assetRef).Any();
+            return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
         public IEnumerable<IResourceLocation> GetLocations(SceneAssetRef assetRef)

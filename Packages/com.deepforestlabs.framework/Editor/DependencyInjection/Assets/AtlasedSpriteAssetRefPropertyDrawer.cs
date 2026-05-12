@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Cysharp.Text;
 using ZLinq;
 using UnityEditor;
@@ -50,7 +49,7 @@ namespace DeepForestLabs.DependencyInjection.Assets
             Sprite[] sprites = GetSpritesFromAtlas(currentAtlas);
             Sprite? currentSprite = currentAtlas == null || assetRef == null || string.IsNullOrEmpty(assetRef._spriteName)
                 ? null
-                : sprites.FirstOrDefault(s => s.name == assetRef._spriteName);
+                : sprites.AsValueEnumerable().FirstOrDefault(s => s.name == assetRef._spriteName);
 
             Rect atlasRect = new Rect(position.x, position.y, position.width - position.height, EditorGUIUtility.singleLineHeight);
             Rect spriteRect = new Rect(position.x + position.width - position.height, position.y, position.height, position.height);
@@ -147,9 +146,10 @@ namespace DeepForestLabs.DependencyInjection.Assets
 
             // De-duplicate by asset path + name (protects against same-named sprites from different textures)
             Sprite[] unique = atlas.GetPackableSprites()
+                .AsValueEnumerable()
                 .Where(s => s != null)
                 .GroupBy(s => AssetDatabase.GetAssetPath(s) + "|" + s.name, StringComparer.Ordinal)
-                .Select(g => g.First())
+                .Select(g => g.AsValueEnumerable().First())
                 .ToArray();
 
             s_PackableSpritesCache[atlas] = unique;
@@ -215,12 +215,12 @@ namespace DeepForestLabs.DependencyInjection.Assets
 
                 if (string.IsNullOrEmpty(_search))
                 {
-                    _view = _allSprites.ToList();
+                    _view = _allSprites.AsValueEnumerable().ToList();
                 }
                 else
                 {
                     string q = _search.Trim();
-                    _view = _allSprites.Where(s => s != null && s.name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                    _view = _allSprites.AsValueEnumerable().Where(s => s != null && s.name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
                 }
                 if (_activeIndex >= _view.Count)
                 {

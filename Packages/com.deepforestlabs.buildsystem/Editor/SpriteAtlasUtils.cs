@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Linq;
 using UnityEditor;
 using ZLinq;
 using UnityEngine.U2D;
@@ -47,6 +46,7 @@ namespace DeepForestLabs.BuildSystems
             }
  
             return findAssets
+                .AsValueEnumerable()
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .Where(path => !omitResources || !path.Contains("/Resources/"))
                 .Select(AssetDatabase.LoadAssetAtPath<SpriteAtlas>)

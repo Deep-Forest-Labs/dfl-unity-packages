@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using ZLinq;
 using System.Text;
@@ -90,6 +89,7 @@ namespace DeepForestLabs.Components
 
                     // Insert root GameObject count check before loading prefab contents
                     GameObject[] roots = AssetDatabase.LoadAllAssetsAtPath(path)
+                        .AsValueEnumerable()
                         .OfType<GameObject>()
                         .Where(go => go.transform.parent == null)
                         .ToArray();

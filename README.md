@@ -45,30 +45,50 @@ Implement `IPlatformBuildSetup` in `Packages/com.deepforestlabs.buildsystem/Edit
 
 ## Installation
 
-Add these packages to your Unity project's `Packages/manifest.json`. For local development, use `file:` paths:
+### Prerequisites
 
-```json
-{
-  "dependencies": {
-    "com.deepforestlabs.framework": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.framework",
-    "com.deepforestlabs.logger": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.logger",
-    "com.deepforestlabs.buildsystem": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.buildsystem",
-    "com.deepforestlabs.audio": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.audio"
-  }
-}
+This is a private repository. Team members must have GitHub access configured:
+
+```bash
+gh auth login
 ```
 
-For versioned releases, use Git URLs pinned to a tag:
+Or have [Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager) installed and authenticated. Unity shells out to `git` for package resolution, so any system-level credential store works.
+
+### Adding packages to a project
+
+Add these packages to your Unity project's `Packages/manifest.json` using Git URLs pinned to a release tag:
 
 ```json
 {
   "dependencies": {
-    "com.deepforestlabs.framework": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.framework#v1.0.0"
+    "com.deepforestlabs.audio": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.audio#v1.0.0",
+    "com.deepforestlabs.buildsystem": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.buildsystem#v1.0.0",
+    "com.deepforestlabs.framework": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.framework#v1.0.0",
+    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0"
   }
 }
 ```
 
 Or use [dfl-unity-template](https://github.com/Deep-Forest-Labs/dfl-unity-template) which comes pre-configured with all packages.
+
+### Updating to a new version
+
+When a new tag is released (e.g. `v1.1.0`), update the `#v1.0.0` suffix in your manifest entries. Unity caches Git packages aggressively -- if the tag hasn't changed but you need to force re-resolve, delete the relevant entries from `Packages/packages-lock.json` and reopen the project.
+
+### Local development (editing packages)
+
+When actively developing the packages themselves, temporarily switch to `file:` paths pointing at your local clone:
+
+```json
+{
+  "dependencies": {
+    "com.deepforestlabs.framework": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.framework"
+  }
+}
+```
+
+This requires `dfl-unity-packages` cloned as a sibling directory. Do not commit `file:` paths to shared branches.
 
 ## Dependencies
 

@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -294,8 +294,8 @@ namespace DeepForestLabs.MVC.Controllers
                 // Finish processes before Running others
                 while (_processes.Count > 0)
                 {
-                    result = (await UniTask.WhenAll(_processes.Select(p => p.Task.AttachExternalCancellation(token))))
-                        .FirstOrDefault(r => r != null);
+                    result = (await UniTask.WhenAll(_processes.AsValueEnumerable().Select(p => p.Task.AttachExternalCancellation(token)).ToArray()))
+                        .AsValueEnumerable().FirstOrDefault(r => r != null);
                 }
 
                 if (result == null)

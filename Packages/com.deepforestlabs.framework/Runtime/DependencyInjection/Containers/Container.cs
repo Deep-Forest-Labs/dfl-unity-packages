@@ -13,6 +13,7 @@ using DeepForestLabs.Assets.Addressables;
 using DeepForestLabs.Assets.Resource;
 using DeepForestLabs.Common;
 using UnityEngine;
+using ZLinq;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using AsyncResolver = System.Func<DeepForestLabs.IDiCollection, System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask<object>>;
 using Resolver = System.Func<DeepForestLabs.IDiCollection, object>;
@@ -119,7 +120,7 @@ namespace DeepForestLabs
 
             // Children
             List<UniTask>? tasks = null;
-            foreach (Container? child in _children.ToArray())
+            foreach (Container? child in _children.AsValueEnumerable().ToArray())
             {
                 tasks ??= new();
                 tasks.Add(SafeDispose(child));

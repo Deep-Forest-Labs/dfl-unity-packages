@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using ZLinq;
 using DeepForestLabs.BuildSystems;
@@ -342,7 +341,7 @@ namespace DeepForestLabs
             {
                 // Inject
                 _injectTasks.Clear();
-                foreach (ContainerFactory? containerFactory in _containerFactories.Select(x => x.factory).ToHashSet())
+                foreach (ContainerFactory? containerFactory in _containerFactories.AsValueEnumerable().Select(x => x.factory).ToHashSet())
                 {
                     _container._singletons.Add(containerFactory.GetType(), containerFactory);
                     _injectTasks.Add(_container.InjectRecursive(_container, containerFactory, 0, _container._transients, token));
@@ -392,7 +391,7 @@ namespace DeepForestLabs
         {
             if (_aliases != null)
             {
-                foreach (KeyValuePair<Type, Type> alias in _aliases.ToArray())
+                foreach (KeyValuePair<Type, Type> alias in _aliases.AsValueEnumerable().ToArray())
                 {
                     if ((_container._scoped != null && _container._scoped.TryGetValue(alias.Value, out object? reference)) ||
                         _container._singletons.TryGetValue(alias.Value, out reference))

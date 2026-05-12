@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.IO;
-using System.Linq;
 using DeepForestLabs.BuildSystems.PlatformSetup;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -55,7 +54,7 @@ namespace DeepForestLabs.BuildSystems
 		{
 			return new BuildPlayerOptions
 			{
-				scenes = EditorBuildSettings.scenes.Select(s => s.path).ToArray(),
+				scenes = EditorBuildSettings.scenes.AsValueEnumerable().Select(s => s.path).ToArray(),
 				target = EditorUserBuildSettings.activeBuildTarget,
 				options = args.BuildOptions,
 				locationPathName = GetOutputPath(args)

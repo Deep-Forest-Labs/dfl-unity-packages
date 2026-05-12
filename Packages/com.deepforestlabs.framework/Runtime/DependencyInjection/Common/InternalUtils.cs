@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Linq;
 using DeepForestLabs.BuildSystems;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -22,7 +21,7 @@ namespace DeepForestLabs.Common
             
             if (genericArguments.Length > 0)
             {
-                return ZString.Format("{0}<{1}>", type.Name, string.Join(',', genericArguments.Select(t => t.Name).ToArray()));
+                return ZString.Format("{0}<{1}>", type.Name, string.Join(',', genericArguments.AsValueEnumerable().Select(t => t.Name).ToArray()));
             }
             else
             {

@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using ZLinq;
 using System.Runtime.CompilerServices;
@@ -31,6 +30,7 @@ namespace DeepForestLabs.Utils
         private static void AuditAllMenuItem()
         {
             string[] paths = AssetDatabase.FindAssets("t:Prefab t:ScriptableObject t:Scene", new[] {"Assets"})
+                .AsValueEnumerable()
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .ToArray();
             
@@ -144,7 +144,7 @@ namespace DeepForestLabs.Utils
                 }
 
                 Type ft = f.FieldType;
-                bool isOptional = f.GetCustomAttributes().Any(a => a is OptionalAttribute);
+                bool isOptional = f.GetCustomAttributes().AsValueEnumerable().Any(a => a is OptionalAttribute);
                 object? value = GetFieldValueSafe(instance, f);
                 value = NormalizeUnityNull(value);
 
@@ -370,7 +370,7 @@ namespace DeepForestLabs.Utils
         
         internal static bool IsInDevelopment(Object asset)
         {
-            return GetLabels(asset)?.Contains("IsInDevelopment") ?? false;
+            return GetLabels(asset)?.AsValueEnumerable().Contains("IsInDevelopment") ?? false;
         }
 
         private static string[]? GetLabels(Object asset)

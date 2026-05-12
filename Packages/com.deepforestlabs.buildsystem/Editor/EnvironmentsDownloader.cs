@@ -2,8 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -47,7 +47,7 @@ namespace DeepForestLabs.BuildSystems
                         {
                             throw new BuildException("Failed to get environment response.");
                         }
-                        List<EnvironmentBuildSettings> result = environmentResponse.Envs.ToList();
+                        List<EnvironmentBuildSettings> result = environmentResponse.Envs.AsValueEnumerable().ToList();
                         _cached = result;
                         _cachedUrl = url;
                     }

@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
+using ZLinq;
 using Cysharp.Text;
 using DeepForestLabs.Factories;
 using DeepForestLabs.MVC.Factory;
@@ -30,7 +30,7 @@ namespace DeepForestLabs.MVC
 
         private static void OnCompilationFinished(string outputPath, CompilerMessage[] messages)
         {
-            HAS_COMPILE_ERRORS = messages.Count(m => m.type == CompilerMessageType.Error) != 0;
+            HAS_COMPILE_ERRORS = messages.AsValueEnumerable().Count(m => m.type == CompilerMessageType.Error) != 0;
         }
 
         private static void CreateMenus()

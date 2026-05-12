@@ -4,8 +4,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
+using ZLinq;
 using DeepForestLabs.Logger;
 using DeepForestLabs.Data;
 using DeepForestLabs.MVC.Views;
@@ -105,7 +105,7 @@ namespace DeepForestLabs.Utils
 
                 string serializedFieldName = fieldInfo.Name.Replace(kOptionalTempSuffix, "");
                 FieldInfo? serializedFieldInfo =
-                    serializedFields.FirstOrDefault(fi => fi.Name.Equals(serializedFieldName));
+                    serializedFields.AsValueEnumerable().FirstOrDefault(fi => fi.Name.Equals(serializedFieldName));
                 if (serializedFieldInfo == null)
                 {
                     continue;
@@ -246,10 +246,11 @@ namespace DeepForestLabs.Utils
         private static void RepairSerializedReferences()
         {
             List<string> guids = AssetDatabase.FindAssets("t:Prefab t:ScriptableObject")
+                .AsValueEnumerable()
                 .ToList();
             guids.AddRange(AssetDatabase.FindAssets("t:Scene"));
                     
-            RepairSerializedReference(guids.Select(AssetDatabase.GUIDToAssetPath).ToArray());
+            RepairSerializedReference(guids.AsValueEnumerable().Select(AssetDatabase.GUIDToAssetPath).ToArray());
         }
 
         [MenuItem("Tools/AssetDatabase/Repair/Selected", false, 2)]

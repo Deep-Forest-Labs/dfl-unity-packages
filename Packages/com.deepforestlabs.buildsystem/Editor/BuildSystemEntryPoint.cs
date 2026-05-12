@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using DeepForestLabs.BuildSystems.AddressablesBuildScripts;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -272,7 +271,7 @@ namespace DeepForestLabs.BuildSystems
 	        {
 		        Debug.Log(ZString.Format("{0}.{1} Started.", nameof(BuildSystemEntryPoint), nameof(CleanBuilders)));
 		        AddressableAssetSettings aas = AddressableAssetSettingsDefaultObject.Settings;
-		        foreach (IDataBuilder builder in aas.DataBuilders.OfType<IDataBuilder>())
+		        foreach (IDataBuilder builder in aas.DataBuilders.AsValueEnumerable().OfType<IDataBuilder>())
 		        {
 			        builder.ClearCachedData();
 		        }

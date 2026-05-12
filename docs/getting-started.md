@@ -4,7 +4,9 @@ This guide walks you through setting up a new Unity project with the DFL package
 
 ## Prerequisites
 
-- **Unity 2021.3 LTS** or later
+- **Unity 2022.3 LTS** or later
+- **GitHub access** to the [dfl-unity-packages](https://github.com/Deep-Forest-Labs/dfl-unity-packages) repo (private)
+- **Git credentials configured** -- run `gh auth login` or ensure Git Credential Manager is set up
 - **OpenUPM scoped registry** for UniTask and ZString (see [Installation](#1-add-packages))
 
 ## The Fast Path: dfl-unity-template
@@ -31,13 +33,15 @@ Add the OpenUPM registry and DFL packages to your `Packages/manifest.json`:
   "dependencies": {
     "com.cysharp.unitask": "2.5.10",
     "com.cysharp.zstring": "2.6.0",
-    "com.deepforestlabs.framework": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.framework",
-    "com.deepforestlabs.logger": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.logger",
-    "com.deepforestlabs.buildsystem": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.buildsystem",
-    "com.deepforestlabs.audio": "file:../../dfl-unity-packages/Packages/com.deepforestlabs.audio"
+    "com.deepforestlabs.audio": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.audio#v1.0.0",
+    "com.deepforestlabs.buildsystem": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.buildsystem#v1.0.0",
+    "com.deepforestlabs.framework": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.framework#v1.0.0",
+    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0"
   }
 }
 ```
+
+> **Local package development:** If you need to edit the packages themselves, temporarily replace a Git URL with a `file:` path pointing to your local clone (e.g. `"file:../../dfl-unity-packages/Packages/com.deepforestlabs.framework"`). Do not commit `file:` paths to shared branches.
 
 ### 2. Create Build Settings
 

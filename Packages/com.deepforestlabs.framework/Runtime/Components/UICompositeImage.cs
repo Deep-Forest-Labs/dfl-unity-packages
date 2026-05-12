@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using ZLinq;
 using UnityEngine.Sprites;
@@ -34,6 +33,7 @@ namespace DeepForestLabs.Components
         private UIDefaultImageLayer[] GetOrderedLayers()
         {
             return _layers
+                .AsValueEnumerable()
                 .Where(l => l != null && l.Enabled)
                 .OrderBy(l => _renderOrder.GetValueOrDefault(l.LayerType, int.MaxValue))
                 .ToArray();

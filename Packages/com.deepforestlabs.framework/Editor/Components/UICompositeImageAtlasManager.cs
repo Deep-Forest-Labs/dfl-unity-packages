@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using DeepForestLabs.Logger;
 using ZLinq;
 using UnityEditor;
@@ -228,7 +227,7 @@ namespace DeepForestLabs.Components
                                 }
                                 else
                                 {
-                                    childComponents.Append(comp);
+                                    childComponents.AsValueEnumerable().Append(comp);
                                 }
                             }
 
@@ -246,7 +245,7 @@ namespace DeepForestLabs.Components
                                     }
                                     else
                                     {
-                                        childComponents.Append(comp);
+                                        childComponents.AsValueEnumerable().Append(comp);
                                     }
                                     break;
                                 }
@@ -270,7 +269,7 @@ namespace DeepForestLabs.Components
                                 }
                                 else
                                 {
-                                    childComponents.Append(comp);
+                                    childComponents.AsValueEnumerable().Append(comp);
                                 }
                             }
                         }
@@ -294,7 +293,7 @@ namespace DeepForestLabs.Components
                         foreach (ObjectOverride o in overrides)
                         {
                             UICompositeImage? comp = o.instanceObject as UICompositeImage;
-                            if (comp != null && nestedComponents.Contains(comp))
+                            if (comp != null && nestedComponents.AsValueEnumerable().Contains(comp))
                             {
                                 shouldSkip = false;
                             }
@@ -353,7 +352,7 @@ namespace DeepForestLabs.Components
             }
 
             // Skip baking if no filter layers and r=0; reuse shared r=0 sprite
-            if (isSquare && original.GetComponents<UIBehaviour>().All(c => c.GetType().Name != "DropShadowFilter" &&
+            if (isSquare && original.GetComponents<UIBehaviour>().AsValueEnumerable().All(c => c.GetType().Name != "DropShadowFilter" &&
                                                                           c.GetType().Name != "OutlineFilter" &&
                                                                           c.GetType().Name != "GlowFilter"))
             {
@@ -374,7 +373,7 @@ namespace DeepForestLabs.Components
             {
                 Debug.LogWarning($"[Auto Fix] {original.name} fallback triggered: Width={width} Height={height}", original);
 
-                if (original.GetComponents<UIBehaviour>().All(c =>
+                if (original.GetComponents<UIBehaviour>().AsValueEnumerable().All(c =>
                     c.GetType().Name != "DropShadowFilter" &&
                     c.GetType().Name != "OutlineFilter" &&
                     c.GetType().Name != "GlowFilter"))
@@ -668,7 +667,7 @@ namespace DeepForestLabs.Components
             if (File.Exists(path))
             {
                 byte[] existingBytes = File.ReadAllBytes(path);
-                if (existingBytes.SequenceEqual(newBytes))
+                if (existingBytes.AsValueEnumerable().SequenceEqual(newBytes))
                 {
                     writeToPath = false;
                 }
@@ -714,7 +713,7 @@ namespace DeepForestLabs.Components
             if (File.Exists(path))
             {
                 byte[] existingBytes = File.ReadAllBytes(path);
-                if (existingBytes.SequenceEqual(newBytes))
+                if (existingBytes.AsValueEnumerable().SequenceEqual(newBytes))
                 {
                     // No changes; skip write and preserve GUID
                     return path;
@@ -772,6 +771,7 @@ namespace DeepForestLabs.Components
         {
             // Disable all GradientImage components
             var gradients = go.GetComponentsInChildren<MonoBehaviour>(true)
+                .AsValueEnumerable()
                 .Where(m => m.GetType().Name == "GradientImage" || m.GetType().Name == "Gradient2");
             foreach (MonoBehaviour? gradient in gradients)
             {
@@ -787,6 +787,7 @@ namespace DeepForestLabs.Components
 
             // Force all FilterBase components to white
             var filters = go.GetComponentsInChildren<MonoBehaviour>(true)
+                .AsValueEnumerable()
                 .Where(m => m.GetType().Name.Contains("Filter"));
             foreach (MonoBehaviour? filter in filters)
             {
@@ -843,6 +844,7 @@ namespace DeepForestLabs.Components
             composite.Mode = UICompositeImageRenderMode.Dynamic;
 
             var gradients = composite.GetComponentsInChildren<MonoBehaviour>(true)
+                .AsValueEnumerable()
                 .Where(m => m.GetType().Name == "GradientImage" || m.GetType().Name == "Gradient2");
             foreach (MonoBehaviour? gradient in gradients)
             {
@@ -856,6 +858,7 @@ namespace DeepForestLabs.Components
             }
 
             var filterBases = composite.GetComponentsInChildren<MonoBehaviour>(true)
+                .AsValueEnumerable()
                 .Where(m => m.GetType().Name.Contains("Filter"));
             foreach (MonoBehaviour? filterBase in filterBases)
             {

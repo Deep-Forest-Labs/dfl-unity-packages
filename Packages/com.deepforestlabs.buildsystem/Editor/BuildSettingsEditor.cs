@@ -2,8 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Cysharp.Text;
+using ZLinq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -78,7 +78,7 @@ namespace DeepForestLabs.BuildSystems
             {
                 BuildSystemSettings bss = BuildSystemSettings.GetSettings();
                 editor.CopyBuildSystemSettings(bss);
-                editor.SetEnvironment(bss, EnvironmentsDownloader.GetEnvironments().FirstOrDefault(e => e.Name == "dev"));
+                editor.SetEnvironment(bss, EnvironmentsDownloader.GetEnvironments().AsValueEnumerable().FirstOrDefault(e => e.Name == "dev"));
             }
             
             editor.serializedObject.ApplyModifiedPropertiesWithoutUndo();
@@ -184,7 +184,7 @@ namespace DeepForestLabs.BuildSystems
                 ? buildSystemSettings.EnvironmentsUrl
                 : args.OverrideEnvironmentUri;
             IReadOnlyList<EnvironmentBuildSettings> environments = EnvironmentsDownloader.Refresh(url);
-            EnvironmentBuildSettings? environment = environments.FirstOrDefault(e => e.Name.Equals(args.Environment));
+            EnvironmentBuildSettings? environment = environments.AsValueEnumerable().FirstOrDefault(e => e.Name.Equals(args.Environment));
             if (environment == null)
             {
                 throw new BuildFailedException(ZString.Format("Failed to locate environment named '{0}'.",

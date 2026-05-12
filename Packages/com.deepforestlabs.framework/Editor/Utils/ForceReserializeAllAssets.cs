@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor;
 using ZLinq;
 using Object = UnityEngine.Object;
@@ -30,6 +29,7 @@ namespace DeepForestLabs.Utils
         {
             AssetDatabase.ForceReserializeAssets(
                 AssetDatabase.FindAssets("t:ScriptableObject")
+                    .AsValueEnumerable()
                     .Select(AssetDatabase.GUIDToAssetPath)
                     .ToArray());
         }
@@ -38,6 +38,7 @@ namespace DeepForestLabs.Utils
         {
             AssetDatabase.ForceReserializeAssets(
                 AssetDatabase.FindAssets("t:Prefab")
+                    .AsValueEnumerable()
                     .Select(AssetDatabase.GUIDToAssetPath)
                     .ToArray());
         }

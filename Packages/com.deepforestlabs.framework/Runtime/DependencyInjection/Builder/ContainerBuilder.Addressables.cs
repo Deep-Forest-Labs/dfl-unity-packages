@@ -1,5 +1,4 @@
 #nullable enable
-using System.Linq;
 using System.Threading;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -337,7 +336,7 @@ namespace DeepForestLabs
 
             foreach (GameObject gameObject in gameObjects)
             {
-                T? behaviour = gameObject.GetComponents<MonoBehaviour>().OfType<T>().FirstOrDefault();
+                T? behaviour = gameObject.GetComponents<MonoBehaviour>().AsValueEnumerable().OfType<T>().FirstOrDefault();
                 if (behaviour != null)
                 {
                     return behaviour;

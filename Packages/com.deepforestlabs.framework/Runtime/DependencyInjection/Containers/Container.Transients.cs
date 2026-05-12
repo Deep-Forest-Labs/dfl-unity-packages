@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using ZLinq;
 using DeepForestLabs.Logger;
 using Cysharp.Threading.Tasks;
 using DeepForestLabs.Common;
@@ -26,13 +26,13 @@ namespace DeepForestLabs
             }
 
             List<UniTask> tasks = new();
-            foreach (IInitializable initializable in transients.OfType<IInitializable>())
+            foreach (IInitializable initializable in transients.AsValueEnumerable().OfType<IInitializable>())
             {
                 tasks.Add(initializable.Initialize(token));
             }
             await UniTask.WhenAll(tasks);
             
-            foreach (IDisposable disposable in transients.OfType<IDisposable>())
+            foreach (IDisposable disposable in transients.AsValueEnumerable().OfType<IDisposable>())
             {
                 token.Register(disposable.Dispose);
             }
@@ -62,13 +62,13 @@ namespace DeepForestLabs
             }
 
             List<UniTask> tasks = new();
-            foreach (IInitializable initializable in transients.OfType<IInitializable>())
+            foreach (IInitializable initializable in transients.AsValueEnumerable().OfType<IInitializable>())
             {
                 tasks.Add(initializable.Initialize(token));
             }
             await UniTask.WhenAll(tasks);
             
-            foreach (IDisposable disposable in transients.OfType<IDisposable>())
+            foreach (IDisposable disposable in transients.AsValueEnumerable().OfType<IDisposable>())
             {
                 token.Register(disposable.Dispose);
             }
@@ -100,13 +100,13 @@ namespace DeepForestLabs
             }
 
             List<UniTask> tasks = new();
-            foreach (IInitializable initializable in transients.OfType<IInitializable>())
+            foreach (IInitializable initializable in transients.AsValueEnumerable().OfType<IInitializable>())
             {
                 tasks.Add(initializable.Initialize(token));
             }
             await UniTask.WhenAll(tasks);
             
-            foreach (IDisposable disposable in transients.OfType<IDisposable>())
+            foreach (IDisposable disposable in transients.AsValueEnumerable().OfType<IDisposable>())
             {
                 token.Register(disposable.Dispose);
             }
@@ -141,13 +141,13 @@ namespace DeepForestLabs
             }
 
             List<UniTask> tasks = new();
-            foreach (IInitializable initializable in transients.OfType<IInitializable>())
+            foreach (IInitializable initializable in transients.AsValueEnumerable().OfType<IInitializable>())
             {
                 tasks.Add(initializable.Initialize(token));
             }
             await UniTask.WhenAll(tasks);
             
-            foreach (IDisposable disposable in transients.OfType<IDisposable>())
+            foreach (IDisposable disposable in transients.AsValueEnumerable().OfType<IDisposable>())
             {
                 token.Register(disposable.Dispose);
             }

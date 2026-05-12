@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -210,14 +209,14 @@ namespace DeepForestLabs.Assets.Addressables
         {
             // 1) Build key → locations map and prune handles
             Dictionary<object, List<IResourceLocation>> keyToLocations = new Dictionary<object, List<IResourceLocation>>(handles.Count);
-            foreach (IDownloadHandle? h in handles.ToList())
+            foreach (IDownloadHandle? h in handles.AsValueEnumerable().ToList())
             {
                 List<IResourceLocation>? locations = null;
                 foreach (IResourceLocator? loc in _locators)
                 {
                     if (loc.Locate(h.AssetReference.RuntimeKey, h.AssetType, out IList<IResourceLocation>? found) && found != null && found.Count > 0)
                     {
-                        locations = found as List<IResourceLocation> ?? found.ToList();
+                        locations = found as List<IResourceLocation> ?? found.AsValueEnumerable().ToList();
                         break;
                     }
                 }
@@ -238,6 +237,7 @@ namespace DeepForestLabs.Assets.Addressables
 
             // 2) Union of all locations for a single download op
             List<IResourceLocation> unionLocations = keyToLocations.Values
+                .AsValueEnumerable()
                 .SelectMany(x => x)
                 .Distinct(ResourceLocationComparer.Instance)
                 .ToList();
@@ -287,6 +287,7 @@ namespace DeepForestLabs.Assets.Addressables
             for (int i = 0; i < unionLocations.Count; i += kMaxLocationsPerBatch)
             {
                 List<IResourceLocation> batch = unionLocations
+                    .AsValueEnumerable()
                     .Skip(i)
                     .Take(kMaxLocationsPerBatch)
                     .ToList();
@@ -320,7 +321,7 @@ namespace DeepForestLabs.Assets.Addressables
                     }
 
                     Log.DebugWarning("Downloading ['{0}'] batch was not successful. Check network.",
-                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
+                        string.Join(',', batch.AsValueEnumerable().Select(l => l.InternalId).ToArray()));
                 }
                 catch (OperationCanceledException)
                 {
@@ -350,7 +351,7 @@ namespace DeepForestLabs.Assets.Addressables
                 if (IsTransient(ex))
                 {
                     Log.DebugException(ex, "Downloading ['{0}'] batch was not successful. Check network.",
-                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
+                        string.Join(',', batch.AsValueEnumerable().Select(l => l.InternalId).ToArray()));
                  
                     await _connectivityService.WaitForConnection(token);
                     continue;
@@ -359,7 +360,7 @@ namespace DeepForestLabs.Assets.Addressables
                 if (LooksLikeCorruption(ex))
                 {
                     Log.DebugException(ex, "Downloading ['{0}'] batch was not successful. One or more files were corrupt.",
-                        string.Join(',', batch.Select(l => l.InternalId).ToArray()));
+                        string.Join(',', batch.AsValueEnumerable().Select(l => l.InternalId).ToArray()));
                     
                     // Clear only the dependencies of this key
                     AsyncOperationHandle<bool> clearOperation = AddressablesImpl.ClearDependencyCacheAsync(batch, autoReleaseHandle: true);
@@ -388,7 +389,7 @@ namespace DeepForestLabs.Assets.Addressables
         {
             if (ex is AggregateException ae)
             {
-                var first = ae.Flatten().InnerExceptions.FirstOrDefault();
+                var first = ae.Flatten().InnerExceptions.AsValueEnumerable().FirstOrDefault();
                 return first != null ? UnwrapException(first) : ex;
             }
             return ex.InnerException != null ? UnwrapException(ex.InnerException) : ex;

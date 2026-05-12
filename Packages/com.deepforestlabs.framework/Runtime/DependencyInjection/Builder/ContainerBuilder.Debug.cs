@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using ZLinq;
 using DeepForestLabs.Logger;
 
 #if !RELEASE_BUILD
@@ -29,8 +29,8 @@ namespace DeepForestLabs
                 return;
             }
 
-            Log.Exception(_registeredExceptions.First(), "PreBuild Exception for container '{0}'", Name);
-            throw _registeredExceptions.First();
+            Log.Exception(_registeredExceptions.AsValueEnumerable().First(), "PreBuild Exception for container '{0}'", Name);
+            throw _registeredExceptions.AsValueEnumerable().First();
 #endif
         }
         
@@ -55,9 +55,9 @@ namespace DeepForestLabs
                 }
             }
 
-            if (exceptions.Any())
+            if (exceptions.AsValueEnumerable().Any())
             {
-                throw exceptions.First().Value;
+                throw exceptions.AsValueEnumerable().First().Value;
             }
         }
         

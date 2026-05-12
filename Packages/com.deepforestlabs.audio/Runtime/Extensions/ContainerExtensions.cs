@@ -6,7 +6,8 @@ namespace DeepForestLabs.Audio
         public static IContainerBuilder AddAudioService(
             this IContainerBuilder builder,
             AudioMixerConfig config,
-            SoundCatalog? catalog = null)
+            SoundCatalog? catalog = null,
+            SoundGroupRegistry? groupRegistry = null)
         {
             builder
                 .AddSingleton(config)
@@ -18,6 +19,11 @@ namespace DeepForestLabs.Audio
             if (catalog != null)
             {
                 builder.AddSingleton(catalog);
+            }
+
+            if (groupRegistry != null)
+            {
+                builder.AddSingleton(groupRegistry);
             }
 
             return builder;

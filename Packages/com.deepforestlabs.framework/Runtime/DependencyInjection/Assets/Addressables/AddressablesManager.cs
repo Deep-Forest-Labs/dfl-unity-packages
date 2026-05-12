@@ -1,8 +1,8 @@
 #nullable enable
 
 using System;
-using System.Linq;
 using System.Collections;
+using ZLinq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -280,7 +280,7 @@ namespace DeepForestLabs.Assets.Addressables
             }
 
             _locators.Clear();
-            foreach (var loc in AddressablesImpl.ResourceLocators.ToList())
+            foreach (var loc in AddressablesImpl.ResourceLocators.AsValueEnumerable().ToList())
             {
                 if (loc.GetType().Name.Contains("SubObjectResourceLocator"))
                     AddressablesImpl.RemoveResourceLocator(loc);

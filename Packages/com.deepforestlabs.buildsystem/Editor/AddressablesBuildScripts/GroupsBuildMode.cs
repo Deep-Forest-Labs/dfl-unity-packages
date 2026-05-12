@@ -1,8 +1,8 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using DeepForestLabs.Logger;
+using ZLinq;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -63,7 +63,7 @@ namespace DeepForestLabs.BuildSystems.AddressablesBuildScripts
 
             // Collect candidates
             List<AddressableAssetGroup> toRemove = new List<AddressableAssetGroup>();
-            foreach (AddressableAssetGroup? g in settings.groups.ToList())
+            foreach (AddressableAssetGroup? g in settings.groups.AsValueEnumerable().ToList())
             {
                 if (g == null)
                 {

@@ -2,8 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Reflection;
+using ZLinq;
 
 namespace DeepForestLabs.Utils
 {
@@ -63,6 +63,7 @@ namespace DeepForestLabs.Utils
             }
 
             CustomAttributeData? nullable = customAttributes
+                .AsValueEnumerable()
                 .FirstOrDefault(x => x.AttributeType.FullName == kNullableContextAttributeInternal ||
                                      x.AttributeType.FullName == kNullableAttributeInternal);
             if (nullable is { ConstructorArguments: { Count: 1 } })
@@ -85,6 +86,7 @@ namespace DeepForestLabs.Utils
             for (MemberInfo? type = declaringType; type != null; type = type.DeclaringType)
             {
                 CustomAttributeData? context = type.CustomAttributes
+                    .AsValueEnumerable()
                     .FirstOrDefault(x => x.AttributeType.FullName == kNullableContextAttributeInternal ||
                                          x.AttributeType.FullName == kNullableAttributeInternal);
                 if (context is { ConstructorArguments: { Count: 1 } } &&

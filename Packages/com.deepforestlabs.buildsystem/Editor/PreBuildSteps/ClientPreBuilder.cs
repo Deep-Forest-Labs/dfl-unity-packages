@@ -1,5 +1,4 @@
 using System.IO;
-using System.Linq;
 using DeepForestLabs.Logger;
 using ZLinq;
 using UnityEditor;
@@ -18,7 +17,7 @@ namespace DeepForestLabs.BuildSystems.PreBuildSteps
             BuildSettings buildSettings = BuildSettings.Instance;
 
             // Validate scenes
-            string[] scenes = EditorBuildSettings.scenes.Select(s => s.path).ToArray();
+            string[] scenes = EditorBuildSettings.scenes.AsValueEnumerable().Select(s => s.path).ToArray();
 
             // Log info
             BuildLog.Info("Performing Client Build");
