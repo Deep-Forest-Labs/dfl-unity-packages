@@ -119,14 +119,7 @@ namespace DeepForestLabs
                 if (instance != null)
                 {
                     _created.Remove(instance);
-                    if (Application.isEditor)
-                    {
-                        GameObject.DestroyImmediate(instance);
-                    }
-                    else
-                    {
-                        GameObject.Destroy(instance);
-                    }
+                    DestroyInstance(instance);
 
                     if (_options.AutoUnload && !_options.Prewarm && _checkedOut.Count == 0 && _created.Count == 0)
                     {
@@ -183,14 +176,11 @@ namespace DeepForestLabs
                 {
                     if (!_checkedOut.Remove(checkInInstance))
                     {
-                        if (Application.isEditor)
-                        {
-                            GameObject.DestroyImmediate(checkInInstance);
-                        }
-                        else
-                        {
-                            GameObject.Destroy(checkInInstance);
-                        }
+                        DestroyInstance(checkInInstance);
+                    }
+                    else if (_options.MaxPoolSize > 0 && _pooled.Count >= _options.MaxPoolSize)
+                    {
+                        DestroyInstance(checkInInstance);
                     }
                     else
                     {
@@ -260,17 +250,21 @@ namespace DeepForestLabs
             }
             token.Register(() => _prefab = null);
 
-            if (_options.Prewarm && !_options.UseCreate)
+            if (!_options.UseCreate)
             {
-                GameObject prewarm = GameObject.Instantiate(_prefab, _container.Transform);
-#if UNITY_EDITOR
-                if (_assetRef._mode == AssetRefMode.Addressables)
+                int prewarmCount = _options.ResolvePrewarmCount();
+                for (int i = 0; i < prewarmCount; i++)
                 {
-                    AddressablesManager.onInstantiated?.Invoke(prewarm);
-                }
+                    GameObject prewarm = GameObject.Instantiate(_prefab, _container.Transform);
+#if UNITY_EDITOR
+                    if (_assetRef._mode == AssetRefMode.Addressables)
+                    {
+                        AddressablesManager.onInstantiated?.Invoke(prewarm);
+                    }
 #endif
-                prewarm.SetActive(false);
-                _pooled.Enqueue(prewarm);
+                    prewarm.SetActive(false);
+                    _pooled.Enqueue(prewarm);
+                }
             }
 
             OnLoad?.Invoke(_prefab);
@@ -287,57 +281,31 @@ namespace DeepForestLabs
             }
         }
 
+        private static void DestroyInstance(GameObject instance)
+        {
+            if (instance == null) return;
+            if (Application.isEditor)
+            {
+                GameObject.DestroyImmediate(instance);
+            }
+            else
+            {
+                GameObject.Destroy(instance);
+            }
+        }
+
         private void Unload()
         {
             foreach (GameObject pooled in _pooled)
-            {
-                if (pooled != null)
-                {
-                    if (Application.isEditor)
-                    {
-                        GameObject.DestroyImmediate(pooled);
-                    }
-                    else
-                    {
-                        GameObject.Destroy(pooled);
-                    }
-                }
-            }
-
+                DestroyInstance(pooled);
             _pooled.Clear();
 
             foreach (GameObject checkedOut in _checkedOut)
-            {
-                if (checkedOut != null)
-                {
-                    if (Application.isEditor)
-                    {
-                        GameObject.DestroyImmediate(checkedOut);
-                    }
-                    else
-                    {
-                        GameObject.Destroy(checkedOut);
-                    }
-                }
-            }
-
+                DestroyInstance(checkedOut);
             _checkedOut.Clear();
 
-            foreach (GameObject checkedOut in _created)
-            {
-                if (checkedOut != null)
-                {
-                    if (Application.isEditor)
-                    {
-                        GameObject.DestroyImmediate(checkedOut);
-                    }
-                    else
-                    {
-                        GameObject.Destroy(checkedOut);
-                    }
-                }
-            }
-
+            foreach (GameObject created in _created)
+                DestroyInstance(created);
             _created.Clear();
 
             _loadScope?.Cancel();
