@@ -7,6 +7,8 @@ namespace DeepForestLabs.Editor
 {
     public static class ForceRefreshPackages
     {
+        private const string PackagePrefix = "com.deepforestlabs.";
+
         [MenuItem("Deep Forest Labs/Utility/Force Refresh Packages")]
         public static void Execute()
         {
@@ -17,8 +19,22 @@ namespace DeepForestLabs.Editor
                 Debug.Log("[DFL] Deleted packages-lock.json");
             }
 
+            string cacheDir = Path.Combine("Library", "PackageCache");
+            if (Directory.Exists(cacheDir))
+            {
+                foreach (string dir in Directory.GetDirectories(cacheDir))
+                {
+                    string folderName = Path.GetFileName(dir);
+                    if (folderName.StartsWith(PackagePrefix))
+                    {
+                        Directory.Delete(dir, true);
+                        Debug.Log($"[DFL] Deleted cached package: {folderName}");
+                    }
+                }
+            }
+
             Client.Resolve();
-            Debug.Log("[DFL] Package resolution triggered");
+            Debug.Log("[DFL] Package resolution triggered — Unity will re-fetch DFL packages");
         }
     }
 }
