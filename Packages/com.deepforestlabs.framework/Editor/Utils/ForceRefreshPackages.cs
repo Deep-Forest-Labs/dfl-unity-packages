@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
-namespace DeepForestLabs.Editor
+namespace DeepForestLabs.EditorTools
 {
     public static class ForceRefreshPackages
     {
