@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using DeepForestLabs.Logger;
 
 namespace DeepForestLabs
 {
@@ -9,6 +10,7 @@ namespace DeepForestLabs
         public IContainerBuilder AddSingleton<T>(T instance)
         {
             Validate(typeof(T));
+            Log.Assert(instance != null, "AddSingleton<{0}> received a null instance.", typeof(T).Name);
             _container._singletons.TryAdd(typeof(T), instance!);
 
             return this;

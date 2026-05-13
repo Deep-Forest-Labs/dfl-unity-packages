@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using DeepForestLabs.Factories;
+using DeepForestLabs.Logger;
 
 namespace DeepForestLabs
 {
@@ -23,12 +24,14 @@ namespace DeepForestLabs
 
         public IContainerBuilder AddFromBuilder(ContainerBuilderFactory factory)
         {
+            Log.Assert(factory != null, "AddFromBuilder received a null ContainerBuilderFactory.");
             factory.AddToBuilder(this);
             return this;
         }
 
         public IContainerBuilder AddFromBuilder<TArg>(ContainerBuilderFactory<TArg> factory, TArg arg)
         {
+            Log.Assert(factory != null, "AddFromBuilder<{0}> received a null ContainerBuilderFactory.", typeof(TArg).Name);
             factory.AddToBuilder(this, arg);
             return this;
         }
@@ -36,6 +39,7 @@ namespace DeepForestLabs
         public IContainerBuilder AddFromBuilder<TArg1, TArg2>(ContainerBuilderFactory<TArg1, TArg2> factory, TArg1 arg1,
             TArg2 arg2)
         {
+            Log.Assert(factory != null, "AddFromBuilder<{0},{1}> received a null ContainerBuilderFactory.", typeof(TArg1).Name, typeof(TArg2).Name);
             factory.AddToBuilder(this, arg1, arg2);
             return this;
         }
@@ -60,6 +64,7 @@ namespace DeepForestLabs
 
         public IContainerBuilder AddChild(ContainerFactory factory)
         {
+            Log.Assert(factory != null, "AddChild received a null ContainerFactory.");
             _containerFactories ??= new();
 
             string name = ZString.Format("{0}[{1}]", factory.Name, _containerFactories.Count);

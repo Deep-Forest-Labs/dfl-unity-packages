@@ -107,12 +107,26 @@ namespace DeepForestLabs
 
             if (_scoped != null && _scoped.TryGetValue(type, out object dependency))
             {
+                if (dependency == null && !fieldInfo.IsNullableReference())
+                {
+                    return FieldInjectResult.FromError(ZString.Format(
+                        "Dependency of type {0} for field {1}.{2} resolved to null.",
+                        InternalUtils.FormatTypeName(type),
+                        InternalUtils.FormatTypeName(instance.GetType()), fieldInfo.Name));
+                }
                 fieldInfo.SetValue(instance, dependency);
                 return FieldInjectResult.FromSuccess();
             }
             
             if (_singletons != null && _singletons.TryGetValue(type, out dependency))
             {
+                if (dependency == null && !fieldInfo.IsNullableReference())
+                {
+                    return FieldInjectResult.FromError(ZString.Format(
+                        "Dependency of type {0} for field {1}.{2} resolved to null.",
+                        InternalUtils.FormatTypeName(type),
+                        InternalUtils.FormatTypeName(instance.GetType()), fieldInfo.Name));
+                }
                 fieldInfo.SetValue(instance, dependency);
                 return FieldInjectResult.FromSuccess();
             }
@@ -125,6 +139,13 @@ namespace DeepForestLabs
                     ContainerLogFlag.Instantiation);
                 
                 dependency = resolver(origin);
+                if (dependency == null && !fieldInfo.IsNullableReference())
+                {
+                    return FieldInjectResult.FromError(ZString.Format(
+                        "Transient resolver for type {0} returned null for field {1}.{2}.",
+                        InternalUtils.FormatTypeName(type),
+                        InternalUtils.FormatTypeName(instance.GetType()), fieldInfo.Name));
+                }
                 fieldInfo.SetValue(instance, dependency);
                 return FieldInjectResult.FromSuccess(dependency);
             }
@@ -137,6 +158,13 @@ namespace DeepForestLabs
                     ContainerLogFlag.Instantiation);
                 
                 dependency = await asyncResolver(origin, token);
+                if (dependency == null && !fieldInfo.IsNullableReference())
+                {
+                    return FieldInjectResult.FromError(ZString.Format(
+                        "Async transient resolver for type {0} returned null for field {1}.{2}.",
+                        InternalUtils.FormatTypeName(type),
+                        InternalUtils.FormatTypeName(instance.GetType()), fieldInfo.Name));
+                }
                 fieldInfo.SetValue(instance, dependency);
                 return FieldInjectResult.FromSuccess(dependency);
             }
