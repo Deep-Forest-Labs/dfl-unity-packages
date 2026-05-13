@@ -1,0 +1,98 @@
+---
+description: DFL framework architecture -- DI containers, lifecycle interfaces, dependency injection, container hierarchy
+alwaysApply: true
+---
+
+# DFL Framework Architecture
+
+This project uses the Deep Forest Labs (DFL) Unity framework. All runtime code is structured around hierarchical DI containers, field injection, and async lifecycle interfaces.
+
+## Bootstrap Flow
+
+`Main.cs` (framework) runs via `[RuntimeInitializeOnLoadMethod]`. It loads `MainArgs` from `Resources/`, builds the root container, and runs `MainState`:
+
+```csharp
+await using (_container = await Container.CreateMain("Main", token)
+    .AddSingleton(args)
+    .AddFromBuilder(args)
+    .AddScoped<MainState>()
+    .Build(token))
+{
+    await _mainState.Run(token);
+}
+```
+
+Game projects subclass `MainArgs` to register project-specific services and the app `ContainerBuilderFactory`.
+
+## Dependency Injection
+
+Use `[Dependency]` on fields. The container resolves them during `Build()`. NEVER instantiate services or states with `new` -- register them on the builder.
+
+```csharp
+// GOOD
+public sealed class MyState : IRunnable
+{
+    [Dependency] private readonly IMyService _service = default!;
+    [Dependency] private readonly IContainer _container = default!;
+}
+
+// BAD -- bypasses DI, loses lifecycle management
+var service = new MyService();
+```
+
+### Registration Methods
+
+| Method | Lifetime | Use for |
+|--------|----------|---------|
+| `AddScoped<T>()` | One per container build | Services, controllers |
+| `AddScoped<IFoo, FooImpl>()` | One per build, interface-keyed | Services with interfaces |
+| `AddSingleton<T>(instance)` | Shared across container + children | Config, factories |
+| `AddTransient<IRunnable, T>()` | Created on demand via `Create<T>` | States (runnables) |
+| `AddAlias<IFoo, Foo>()` | Alias an existing registration | Multiple interfaces for one type |
+| `AddFromBuilder(factory)` | Delegates to a `ContainerBuilderFactory` | Composition of scopes |
+
+## Container Hierarchy
+
+Each scope is a child container. Children inherit parent singletons and can add their own registrations. Disposing a child cancels its `CancellationToken` and cleans up its resources.
+
+```csharp
+await using (IContainer child = await _container
+    .CreateChild("Session")
+    .AddFromBuilder(_sessionFactory)
+    .Build(token))
+{
+    await child.Run<IRunnable>(token);
+}
+// child is disposed here -- scope cancelled, resources freed
+```
+
+## ContainerBuilderFactory
+
+Each scope is configured by a `ContainerBuilderFactory` ScriptableObject. Override `AddToBuilder` to register services, child factories, and runnables:
+
+```csharp
+public sealed class SessionContainerFactory : ContainerBuilderFactory
+{
+    [SerializeField] private LevelContainerFactory _levelFactory = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        return builder
+            .AddScoped<ICursorService, CursorService>()
+            .AddSingleton(_levelFactory)
+            .AddTransient<IRunnable, SessionState>();
+    }
+}
+```
+
+These are ScriptableObject assets assigned in the Unity Inspector, NOT instantiated in code.
+
+## Lifecycle Interfaces
+
+| Interface | Purpose | Called by |
+|-----------|---------|-----------|
+| `IRunnable` | Long-lived async task (`Run(CancellationToken)`) | `container.Run<IRunnable>(token)` |
+| `IInitializable` | One-time async setup (`Initialize(CancellationToken)`) | Container during `Build()` |
+| `IDisposable` | Cleanup | Container on scope cancellation |
+
+States implement `IRunnable`. Services that need async setup implement `IInitializable`. The container orchestrates all of these automatically -- do not call `Initialize` or `Dispose` manually.

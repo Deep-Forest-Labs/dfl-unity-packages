@@ -1,0 +1,72 @@
+---
+description: DFL logging and assertions -- use framework Log class, never Debug.Log; prefer Log.Assert over defensive null checks
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# DFL Logging and Assertions
+
+## Use Framework Logging
+
+Always use `DeepForestLabs.Logger.Log`, never Unity's `Debug.Log` family.
+
+```csharp
+using DeepForestLabs.Logger;
+
+// GOOD
+Log.Info("Player connected: {0}", playerId);
+Log.Warning("Asset not found: {0}", assetPath);
+Log.Error("Failed to load level: {0}", ex.Message);
+
+// BAD -- bypasses framework log filtering, formatting, and frame tagging
+Debug.Log("Player connected");
+Debug.LogWarning("Asset not found");
+Debug.LogError("Failed to load level");
+```
+
+Available methods: `Log.Info`, `Log.Warning`, `Log.Error`, `Log.Exception`, `Log.Debug.*`. All support ZString format arguments (`{0}`, `{1}`, etc.) for zero-allocation logging.
+
+## Log.Assert Philosophy
+
+`Log.Assert(condition, message)` validates preconditions at architectural boundaries. It throws `AssertionException` in non-release builds and compiles out in release (`[Conditional("NOT_RELEASE_BUILD")]`).
+
+The DI container guarantees that `[Dependency]` fields are non-null after `Build()`. Trust the container -- do NOT scatter defensive null checks through business logic. Instead, assert at the lowest architectural boundary where a precondition must hold.
+
+```csharp
+// GOOD -- trust DI, assert at boundaries
+public sealed class WeaponController : Controller<WeaponModel, WeaponView>
+{
+    [Dependency] private readonly IInputService _input = default!;
+    [Dependency] private readonly PlayerController _player = default!;
+
+    protected override async UniTask<VoidReturn> Run(WeaponView view, CancellationToken token)
+    {
+        // _input and _player are guaranteed non-null by the container
+        while (!token.IsCancellationRequested)
+        {
+            if (_input.FirePressed) { /* fire */ }
+        }
+    }
+}
+
+// BAD -- defensive null checks that DI already guarantees
+if (_input != null && _input.FirePressed) { /* fire */ }
+if (_player == null) { Debug.LogError("Player is null!"); return; }
+```
+
+Use `Log.Assert` when validating data that comes from outside the DI system (user input, deserialized data, editor configuration):
+
+```csharp
+Log.Assert(args != null, "args != null, Args not found at '{0}'", MAIN_ARGS_RESOURCES_PATH);
+Log.Assert(!string.IsNullOrEmpty(_guid), "!string.IsNullOrEmpty(_guid)");
+```
+
+## Dependency Field Convention
+
+Mark injected fields as `private readonly T _field = default!;` (null-forgiving operator). The DI system assigns them during container build. Do not initialize them manually.
+
+```csharp
+[Dependency] private readonly IContainer _container = default!;
+[Dependency] private readonly CancellationToken _scope = default;
+[Dependency] private readonly IMyService _service = default!;
+```

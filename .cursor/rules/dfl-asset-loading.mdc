@@ -1,0 +1,101 @@
+---
+description: DFL asset loading -- use AssetRef types and container builder methods, never raw Resources.Load or Addressables
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# DFL Asset Loading
+
+All asset loading goes through the framework's `AssetRef` system and `IContainerBuilder` methods. Direct Unity API calls are prohibited in game code.
+
+## Prohibited Patterns
+
+```csharp
+// BAD -- hardcoded string, synchronous, no caching, no lifecycle
+var asset = Resources.Load<MyAsset>("path/to/asset");
+
+// BAD -- bypasses framework download/retry/lifecycle management
+var handle = Addressables.LoadSceneAsync(sceneRef, LoadSceneMode.Additive);
+
+// BAD -- wrong type; use framework SceneAssetRef instead
+[SerializeField] private AssetReference _sceneRef;
+```
+
+## Correct Pattern
+
+Declare a typed `AssetRef` field on a `ContainerBuilderFactory` ScriptableObject, then register it on the builder. The framework handles async loading, caching, download (for Addressables), and cleanup on container disposal.
+
+```csharp
+public sealed class LevelContainerFactory : ContainerBuilderFactory
+{
+    [SerializeField] private ScriptableObjectAssetRefT<InputActionAsset> _inputActions = default!;
+    [SerializeField] private GameplayContainerFactory _gameplayFactory = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        return builder
+            .AddScriptableObject(_inputActions)  // loaded async, injected via [Dependency]
+            .AddSingleton(_gameplayFactory)
+            .AddTransient<IRunnable, LevelState>();
+    }
+}
+```
+
+The resolved asset is then injected into the consuming class:
+
+```csharp
+public sealed class InputService : IInputService, IInitializable
+{
+    [Dependency] private readonly InputActionAsset _actions = default!;  // injected by container
+
+    public UniTask Initialize(CancellationToken token)
+    {
+        // _actions is already loaded -- just use it
+        InputActionMap map = _actions.FindActionMap("Player", throwIfNotFound: true)!;
+        // ...
+    }
+}
+```
+
+## Scene Loading
+
+Use `AddScene(SceneAssetRef)` on the builder. The scene loads during `Build()` and auto-unloads when the container disposes:
+
+```csharp
+// GOOD
+await using (IContainer level = await _container
+    .CreateChild("Level")
+    .AddFromBuilder(_levelFactory)
+    .AddScene(levelDefinition.SceneRef)  // SceneAssetRef, not AssetReference
+    .Build(token))
+{
+    await level.Run<IRunnable>(token);
+}
+// scene auto-unloads here
+
+// BAD
+var handle = Addressables.LoadSceneAsync(level.SceneRef, LoadSceneMode.Additive);
+// ... manual unload later
+await Addressables.UnloadSceneAsync(sceneInstance);
+```
+
+## Available AssetRef Types
+
+| Type | Builder method | Injects as |
+|------|---------------|------------|
+| `SceneAssetRef` | `AddScene(ref)` | `Scene` |
+| `ScriptableObjectAssetRefT<T>` | `AddScriptableObject(ref)` | `T` |
+| `AudioClipAssetRef` | `AddAudioClip(ref)` | `AudioClip` |
+| `GameObjectAssetRef` | `AddGameObjectManager(ref, options)` | `IGameObjectManager` |
+| `GameObjectAssetRefT<T>` | `AddGameObjectManager(ref, options)` | `IGameObjectManagerT<T>` |
+| `SpriteAssetRef` | `AddSprite(ref)` | `Sprite` |
+| `Texture2DAssetRef` | `AddTextures2D(ref)` | `Texture2D` |
+| `MeshAssetRef` | `AddMesh(ref)` | `Mesh` |
+| `SpriteAtlasAssetRef` | `AddSpriteAtlas(ref)` | `SpriteAtlas` |
+| `AtlasedSpriteAssetRef` | `AddAtlasedSprite(ref)` | `Sprite` |
+
+Each `AssetRef` supports both `Resources` and `Addressables` mode via the `AssetRefMode` enum. The mode is configured per-asset in the Inspector; the code does not change between modes.
+
+## The Only Exception
+
+`Main.cs` in the framework loads `MainArgs` via `Resources.Load("MainArgs")`. This is framework bootstrap code. Game code must NEVER call `Resources.Load` directly.
