@@ -1,6 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
-using ZLinq;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -117,7 +117,7 @@ namespace DeepForestLabs.Audio.Editor
                 groups[groupName].Add(i);
             }
 
-            foreach (KeyValuePair<string, List<int>> kvp in groups.AsValueEnumerable().OrderBy(g => g.Key))
+            foreach (KeyValuePair<string, List<int>> kvp in groups.OrderBy(g => g.Key))
             {
                 string groupName = kvp.Key;
                 List<int> indices = kvp.Value;

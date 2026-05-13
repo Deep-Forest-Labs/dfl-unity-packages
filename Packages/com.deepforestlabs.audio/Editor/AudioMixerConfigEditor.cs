@@ -1,5 +1,5 @@
 #nullable enable
-using ZLinq;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -125,7 +125,7 @@ namespace DeepForestLabs.Audio.Editor
                 }
                 if (alreadyMapped) continue;
 
-                AudioMixerGroup? match = allGroups.AsValueEnumerable().FirstOrDefault(g =>
+                AudioMixerGroup? match = allGroups.FirstOrDefault(g =>
                     string.Equals(g.name, regGroup, System.StringComparison.OrdinalIgnoreCase));
 
                 if (match != null)
