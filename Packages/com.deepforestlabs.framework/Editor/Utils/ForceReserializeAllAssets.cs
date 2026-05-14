@@ -8,16 +8,16 @@ namespace DeepForestLabs.Utils
 {
     internal static class ForceReserializeAllAssets
     {
-        [MenuItem("Tools/AssetDatabase/Reserialize/All Assets")]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Reserialize/All Assets")]
         private static void MenuItemAllAsset() => ExecuteAllAssets();
         
-        [MenuItem("Tools/AssetDatabase/Reserialize/Scriptable Objects")]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Reserialize/Scriptable Objects")]
         private static void MenuItemScriptableObjects() => ExecuteScriptableObject();
         
-        [MenuItem("Tools/AssetDatabase/Reserialize/Prefabs")]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Reserialize/Prefabs")]
         private static void MenuItemPrefabs() => ExecutePrefabs();
         
-        [MenuItem("Tools/AssetDatabase/Reserialize/Selected")]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Reserialize/Selected")]
         private static void MenuItemSelected() => ExecuteSelected();
 
         private static void ExecuteAllAssets()

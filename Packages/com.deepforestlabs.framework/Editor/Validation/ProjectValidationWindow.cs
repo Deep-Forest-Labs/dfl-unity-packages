@@ -13,7 +13,7 @@ namespace DeepForestLabs.EditorTools.Validation
         private Vector2 _scrollPos;
         private readonly Dictionary<string, bool> _categoryFoldouts = new();
 
-        [MenuItem("Tools/DFL/Validate Project")]
+        [MenuItem("Deep Forest Labs/Tools/Validate Project")]
         public static void ShowWindow()
         {
             ProjectValidationWindow window = GetWindow<ProjectValidationWindow>("Project Validation");

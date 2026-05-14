@@ -11,7 +11,7 @@ namespace DeepForestLabs.BuildSystems
     [CustomEditor(typeof(BuildSystemSettings))]
     public class BuildSystemSettingsEditor : Editor
     {
-	    [MenuItem("Edit/Build/Build System Settings %#e")]
+	    [MenuItem("Build/Build System Settings %#e")]
 	    public static void Edit() => BuildSystemEntryPoint.EditBuildSystemSettings();
 
 	    private IReadOnlyList<EnvironmentBuildSettings> _environments = Array.Empty<EnvironmentBuildSettings>();

@@ -9,7 +9,7 @@ namespace DeepForestLabs.EditorTools
     {
         private const string PackagePrefix = "com.deepforestlabs.";
 
-        [MenuItem("Deep Forest Labs/Utility/Force Refresh Packages")]
+        [MenuItem("Deep Forest Labs/Tools/Force Refresh Packages")]
         public static void Execute()
         {
             string lockFile = Path.Combine("Packages", "packages-lock.json");

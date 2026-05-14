@@ -6,7 +6,7 @@ namespace DeepForestLabs
 {
     public class ScriptGuidViewer : EditorWindow
     {
-        [MenuItem("Tools/Show Script GUIDs")]
+        [MenuItem("Deep Forest Labs/Tools/Show Script GUIDs")]
         public static void ShowWindow()
         {
             GetWindow<ScriptGuidViewer>("Script GUIDs");

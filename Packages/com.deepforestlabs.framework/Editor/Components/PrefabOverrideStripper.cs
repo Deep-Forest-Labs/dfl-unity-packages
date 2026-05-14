@@ -10,7 +10,7 @@ namespace DeepForestLabs.Components
 {
     public static class PrefabOverrideStripper
     {
-        [MenuItem("Tools/Prefabs/Strip All Prefab Overrides")]
+        [MenuItem("Deep Forest Labs/Tools/Prefabs/Strip All Prefab Overrides")]
         private static void RevertOverrides()
         {
             AssetDatabase.StartAssetEditing();

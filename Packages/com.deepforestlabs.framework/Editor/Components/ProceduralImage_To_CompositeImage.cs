@@ -16,44 +16,44 @@ namespace DeepForestLabs.Components
 	// ReSharper disable once InconsistentNaming
 	public static class ProceduralImage_To_CompositeImage
 	{
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 1 - Replace (Dry Run)")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 1 - Replace (Dry Run)")]
         public static void ReplaceProceduralImagesDryRun()
         {
             ReplaceProceduralImages(true);
         }
 
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 1 - Replace")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 1 - Replace")]
         public static void ReplaceProceduralImagesApply()
         {
             ReplaceProceduralImages();
         }
 
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 2 - Bake")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 2 - Bake")]
         public static void BakeAllCompositeImages()
         {
             UICompositeImageAtlasManager.Instance.BakeAllCompositeImages();
         }
         
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 3 - Link")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 3 - Link")]
         public static void LinkAllCompositeImages()
         {
 	        UICompositeImageAtlasManager.Instance.LinkAllCompositeImages();
         }
 
         
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 4 - Compare")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 4 - Compare")]
         public static void CompareProceduralImagesApply()
         {
 	        CompareProceduralImage();
         }
 
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 5 - Deprecate (Dry Run)")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 5 - Deprecate (Dry Run)")]
         public static void DeprecateFilterBaseDryRun()
         {
             DeprecateFilterBase(true);
         }
 
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Step 5 - Deprecate")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Step 5 - Deprecate")]
         public static void DeprecateFilterBaseRun()
         {
             DeprecateFilterBase();
@@ -276,7 +276,7 @@ namespace DeepForestLabs.Components
             EditorUtility.RevealInFinder(reportPath);
         }
         
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Validate")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Validate")]
         public static void ValidateConversionComplete()
         {
             string[] prefabPaths = Directory.GetFiles("Assets", "*.prefab", SearchOption.AllDirectories);
@@ -629,7 +629,7 @@ namespace DeepForestLabs.Components
             EditorUtility.RevealInFinder(reportPath);
         }
         
-        [MenuItem("Tools/Composite Image/Conversion/ProceduralImage/Patches/Sprite Type Patch")]
+        [MenuItem("Deep Forest Labs/Tools/Composite Image/Conversion/ProceduralImage/Patches/Sprite Type Patch")]
         public static void SpriteTypePatch()
         {
             AssetDatabase.StartAssetEditing();

@@ -6,7 +6,7 @@ namespace DeepForestLabs.Audio.Editor
 {
     public static class AudioMenuItems
     {
-        [MenuItem("Audio/Setup Instructions")]
+        [MenuItem("Deep Forest Labs/Audio/Setup Instructions")]
         public static void ShowSetupInstructions()
         {
             EditorUtility.DisplayDialog(

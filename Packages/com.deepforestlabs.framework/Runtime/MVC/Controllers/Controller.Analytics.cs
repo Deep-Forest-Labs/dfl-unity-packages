@@ -252,7 +252,7 @@ namespace DeepForestLabs.MVC.Controllers
 		public const string kMissingUIElement = "Missing UI Element";
 		
 #if UNITY_EDITOR
-		private const string MenuPath = "Tools/Disable Log Asserts for UI Helpers";
+		private const string MenuPath = "Deep Forest Labs/Tools/Disable Log Asserts for UI Helpers";
 		static Controller()
 		{
 			UnityEditor.Menu.SetChecked(MenuPath, LoggingMissingComponents);

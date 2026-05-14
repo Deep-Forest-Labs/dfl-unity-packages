@@ -16,8 +16,8 @@ namespace DeepForestLabs.MVC
     [InitializeOnLoad]
     public static class FactoryCreateMenuItems
     {
-        private const string CREATE_MENU_PATH_PREFIX = "Assets/DeepForestLabs/Create";
-        private const string EDIT_MENU_PATH_PREFIX = "Assets/DeepForestLabs/Edit";
+        private const string CREATE_MENU_PATH_PREFIX = "Assets/Deep Forest Labs/Create";
+        private const string EDIT_MENU_PATH_PREFIX = "Assets/Deep Forest Labs/Edit";
         private static bool HAS_CREATED_MENU_ITEMS = false;
         private static bool HAS_COMPILE_ERRORS = false;
         private const string BASE_CREATE_PATH = "Assets/Data/_AssetData/Addressables";

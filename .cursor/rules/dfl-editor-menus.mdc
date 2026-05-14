@@ -1,0 +1,76 @@
+# DFL Editor Menu Organization
+
+All DFL custom Unity Editor menu items follow a standard path convention. Every new menu item must use these prefixes.
+
+## Top-Level Menu Bar
+
+### `Deep Forest Labs/` -- framework and game tools
+
+All framework utilities, game-specific wizards, and package tools live under this single top-level menu.
+
+| Prefix | Use for | Example |
+|--------|---------|---------|
+| `Deep Forest Labs/Tools/...` | Framework editor utilities | `Deep Forest Labs/Tools/Validate Project` |
+| `Deep Forest Labs/Tools/AssetDatabase/...` | Asset audit, repair, reserialize | `Deep Forest Labs/Tools/AssetDatabase/Reserialize/All Assets` |
+| `Deep Forest Labs/Tools/Composite Image/...` | Composite image conversion tools | `Deep Forest Labs/Tools/Composite Image/Settings` |
+| `Deep Forest Labs/Tools/SpriteAtlasV2/...` | Sprite atlas utilities | `Deep Forest Labs/Tools/SpriteAtlasV2/Set 'Include In Build' Flag` |
+| `Deep Forest Labs/Tools/Prefabs/...` | Prefab tools | `Deep Forest Labs/Tools/Prefabs/Strip All Prefab Overrides` |
+| `Deep Forest Labs/{ProjectName}/...` | Game-specific wizards and setup | `Deep Forest Labs/Slumber/Build Main Scene` |
+| `Deep Forest Labs/Audio/...` | Audio package tools | `Deep Forest Labs/Audio/Setup Instructions` |
+
+### `Build/` -- build system (stays top-level)
+
+Build commands keep their own top-level menu for fast access via hotkeys (F5-F12). Build-related settings also live here.
+
+```csharp
+[MenuItem("Build/Run _F5")]
+[MenuItem("Build/Client _F7")]
+[MenuItem("Build/Build System Settings %#e")]
+```
+
+## Right-Click Context Menu (Project Window)
+
+### `Assets/Deep Forest Labs/Create/...` and `Assets/Deep Forest Labs/Edit/...`
+
+Factory create/edit menu items appear in the Project window right-click context menu. These are generated dynamically by `FactoryCreateMenuItems.cs` for every `ContainerFactory`, `ContainerBuilderFactory`, and MVC `Factory<>` subclass.
+
+The path is controlled by the `[FactoryMenuItem]` attribute:
+
+```csharp
+// Produces: Assets/Deep Forest Labs/Create/Slumber/TitleScreen
+[FactoryMenuItem("TitleScreen", "Slumber")]
+public sealed class TitleScreenFactory : Factory<...> { }
+```
+
+Without the attribute, the path is derived from the type's namespace. Use `[FactoryMenuItem]` to keep paths clean.
+
+## Prohibited Patterns
+
+Do NOT place DFL menu items under these prefixes:
+
+```csharp
+// BAD -- scattered across Unity's Tools menu
+[MenuItem("Tools/DFL/...")]
+[MenuItem("Tools/AssetDatabase/...")]
+[MenuItem("Tools/Composite Image/...")]
+
+// BAD -- inconsistent naming
+[MenuItem("Deep Forest Labs/Utility/...")]
+
+// BAD -- orphaned under Edit
+[MenuItem("Edit/Build/...")]
+
+// BAD -- duplicates dynamic factory menus
+[CreateAssetMenu(menuName = "Slumber/SessionContainerFactory")]  // on ContainerBuilderFactory subclasses
+```
+
+## `[CreateAssetMenu]` Rule
+
+Do NOT use `[CreateAssetMenu]` on `ContainerBuilderFactory` or MVC `Factory<>` subclasses -- the dynamic factory menu system handles these automatically. Only use `[CreateAssetMenu]` on standalone data ScriptableObjects (e.g. `LevelDefinition`) that are not factories.
+
+## Adding New Menu Items
+
+1. Determine the category from the table above
+2. Use the full `Deep Forest Labs/...` prefix (or `Build/...` for build commands)
+3. For game-specific tools, use `Deep Forest Labs/{ProjectName}/...`
+4. For new MVC factories, add `[FactoryMenuItem("Name", "ProjectName")]` -- the framework generates the menu

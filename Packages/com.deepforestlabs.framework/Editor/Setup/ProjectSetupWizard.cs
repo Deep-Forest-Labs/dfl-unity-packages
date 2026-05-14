@@ -18,7 +18,7 @@ namespace DeepForestLabs.EditorTools.Setup
 
         private static readonly string[] StepNames = { "Core Assets", "Build System", "Audio", "Validation" };
 
-        [MenuItem("Tools/DFL/Project Setup Wizard")]
+        [MenuItem("Deep Forest Labs/Tools/Project Setup Wizard")]
         public static void ShowWindow()
         {
             ProjectSetupWizard window = GetWindow<ProjectSetupWizard>("DFL Project Setup");

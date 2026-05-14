@@ -8,10 +8,10 @@ namespace DeepForestLabs.BuildSystems
 {
     public static class SpriteAtlasUtils
     {
-        [MenuItem("Tools/SpriteAtlasV2/Set 'Include In Build' Flag")]
+        [MenuItem("Deep Forest Labs/Tools/SpriteAtlasV2/Set 'Include In Build' Flag")]
         public static void SetAllIncludeInBuildMenuItem() => SetAllIncludeInBuild(true);
 
-        [MenuItem("Tools/SpriteAtlasV2/Clear 'Include In Build' Flag")]
+        [MenuItem("Deep Forest Labs/Tools/SpriteAtlasV2/Clear 'Include In Build' Flag")]
         public static void ResetAllIncludeInBuildMenuItem() => SetAllIncludeInBuild(false);
         
         public static void SetAllIncludeInBuild(bool enable, bool omitResources = true)

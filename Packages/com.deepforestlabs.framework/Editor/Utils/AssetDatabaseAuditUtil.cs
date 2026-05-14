@@ -23,8 +23,8 @@ namespace DeepForestLabs.Utils
 {
     internal static partial class AssetDatabaseAuditUtil
     {
-        private const string RunAllMenuPath = "Tools/AssetDatabase/Audit/Serialized Fields/All";
-        private const string RunSelectedMenuPath = "Tools/AssetDatabase/Audit/Serialized Fields/Selected";
+        private const string RunAllMenuPath = "Deep Forest Labs/Tools/AssetDatabase/Audit/Serialized Fields/All";
+        private const string RunSelectedMenuPath = "Deep Forest Labs/Tools/AssetDatabase/Audit/Serialized Fields/Selected";
 
         [MenuItem(RunAllMenuPath, false, 1)]
         private static void AuditAllMenuItem()

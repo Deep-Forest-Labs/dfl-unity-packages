@@ -242,7 +242,7 @@ namespace DeepForestLabs.Utils
             }
         }
 
-        [MenuItem("Tools/AssetDatabase/Repair/All", false, 1)]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Repair/All", false, 1)]
         private static void RepairSerializedReferences()
         {
             List<string> guids = AssetDatabase.FindAssets("t:Prefab t:ScriptableObject")
@@ -253,7 +253,7 @@ namespace DeepForestLabs.Utils
             RepairSerializedReference(guids.AsValueEnumerable().Select(AssetDatabase.GUIDToAssetPath).ToArray());
         }
 
-        [MenuItem("Tools/AssetDatabase/Repair/Selected", false, 2)]
+        [MenuItem("Deep Forest Labs/Tools/AssetDatabase/Repair/Selected", false, 2)]
         private static void RepairDooberRewardInSelectedPrefabs()
         {
             RepairSerializedReference(GetSelectedPaths());

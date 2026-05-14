@@ -6,7 +6,7 @@ namespace DeepForestLabs.Components
     [CustomEditor(typeof(UICompositeImageSettings))]
     public sealed class UIImageSettingsEditor : Editor
     {
-        private const string kSelectEditorSettings = "Tools/Composite Image/Settings";
+        private const string kSelectEditorSettings = "Deep Forest Labs/Tools/Composite Image/Settings";
         
         [MenuItem(kSelectEditorSettings)]
         public static void SelectEditorSettings()

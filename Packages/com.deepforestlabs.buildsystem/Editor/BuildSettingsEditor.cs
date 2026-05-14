@@ -15,7 +15,7 @@ namespace DeepForestLabs.BuildSystems
     {
         public static readonly string ASSET_DATABASE_PATH = ZString.Concat("Assets/Resources/", BuildSettings.RESOURCES_PATH, ".asset");
 	    
-        [MenuItem("Edit/Build/Build Settings")]
+        [MenuItem("Build/Build Settings")]
         private static void EditMenuItem()
         {
             Selection.activeObject = BuildSettings.Instance;

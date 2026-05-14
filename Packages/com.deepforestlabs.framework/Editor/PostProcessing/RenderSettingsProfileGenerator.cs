@@ -6,7 +6,7 @@ namespace DeepForestLabs.PostProcessing
 {
 	public class RenderSettingsProfileGenerator
 	{
-		[MenuItem("Tools/Generate RenderSettingsProfile From Scene")]
+		[MenuItem("Deep Forest Labs/Tools/Generate RenderSettingsProfile From Scene")]
 		public static void Generate()
 		{
 			RenderSettingsProfile newProfile = (RenderSettingsProfile)ScriptableObject.CreateInstance(typeof(RenderSettingsProfile));
