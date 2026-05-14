@@ -30,7 +30,7 @@ namespace DeepForestLabs.MVC
 
         private static void OnCompilationFinished(string outputPath, CompilerMessage[] messages)
         {
-            HAS_COMPILE_ERRORS = messages.AsValueEnumerable().Count(m => m.type == CompilerMessageType.Error) != 0;
+            HAS_COMPILE_ERRORS |= messages.AsValueEnumerable().Count(m => m.type == CompilerMessageType.Error) != 0;
         }
 
         private static void CreateMenus()
@@ -43,9 +43,20 @@ namespace DeepForestLabs.MVC
             
             foreach (Assembly? assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                foreach (Type type in assembly.GetTypes())
+                Type?[] types;
+                try
                 {
-                    if (!type.IsClass || type.IsAbstract || !typeof(ScriptableObject).IsAssignableFrom(type))
+                    types = assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    Debug.LogWarning($"[FactoryCreateMenuItems] Failed to load types from {assembly.FullName}: {e.Message}");
+                    types = e.Types;
+                }
+
+                foreach (Type? type in types)
+                {
+                    if (type == null || !type.IsClass || type.IsAbstract || !typeof(ScriptableObject).IsAssignableFrom(type))
                     {
                         continue;
                     }
