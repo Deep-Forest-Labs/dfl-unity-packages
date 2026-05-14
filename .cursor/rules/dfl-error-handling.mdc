@@ -46,21 +46,14 @@ while (!token.IsCancellationRequested)
     }
 }
 
-// GOOD -- catch only intentional flow-control exceptions, let everything else propagate
+// GOOD -- use result-based flow control; child scope returns normally, parent loops
 while (!token.IsCancellationRequested)
 {
-    try
-    {
-        await RunLevel(level, token);
-    }
-    catch (QuitToTitleException)
-    {
-        Log.Info("Returned to title from gameplay");
-    }
-    catch (OperationCanceledException)
-    {
-        throw;
-    }
+    ResultV<TitleScreenResult> result = await _titleScreen.Run(token);
+    if (result.IsValid && result.Value == TitleScreenResult.Quit) break;
+
+    await RunLevel(level, token);
+    // level completed or user quit to title -- loop back naturally
 }
 ```
 
@@ -68,7 +61,7 @@ while (!token.IsCancellationRequested)
 
 | Pattern | When to use |
 |---------|-------------|
-| `catch (SpecificException)` + continue | Intentional flow control (e.g. `QuitToTitleException`) |
+| `catch (SpecificException)` + continue | Rare -- only when an interface contract requires exception-based signaling |
 | `catch (OperationCanceledException)` + `throw` | Always rethrow cancellation |
 | `try/finally` | Cleanup (unsubscribe, hide UI, unlock cursor) -- no exception suppression |
 | `catch (Exception)` + `throw` | Wrapping with context, then rethrowing (rare) |

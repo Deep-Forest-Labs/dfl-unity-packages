@@ -1,0 +1,498 @@
+---
+description: DFL game project patterns -- states as runnables, MVC structure, services, container hierarchy, folder conventions
+alwaysApply: true
+---
+
+# DFL Game Project Patterns
+
+This project is built on `com.deepforestlabs.framework`. All game logic flows through DI containers, IRunnable states, and MVC controllers.
+
+## States as IRunnables
+
+Each game phase is an `IRunnable` that runs inside its own container scope. Register with `AddTransient<IRunnable, T>()` and run with `container.Run<IRunnable>(token)`.
+
+```csharp
+public sealed class SessionState : IRunnable
+{
+    [Dependency] private readonly IContainer _container = default!;
+    [Dependency] private readonly LevelContainerFactory _levelFactory = default!;
+
+    public async UniTask Run(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            // show title, wait for input, then load level
+            await using (IContainer level = await _container
+                .CreateChild("Level")
+                .AddFromBuilder(_levelFactory)
+                .AddScene(levelDef.SceneRef)
+                .Build(token))
+            {
+                await level.Run<IRunnable>(token);
+            }
+        }
+    }
+}
+```
+
+## Container Hierarchy
+
+Game projects build a chain of nested container scopes. Each scope has a `ContainerBuilderFactory` ScriptableObject:
+
+```
+Main (framework)
+  -> App (SlumberContainerFactory)
+    -> Session (SessionContainerFactory)
+      -> Level (LevelContainerFactory)
+        -> Gameplay (GameplayContainerFactory)
+```
+
+Each factory registers its scope's services, child factories, and runnable:
+
+```csharp
+public sealed class SessionContainerFactory : ContainerBuilderFactory
+{
+    [SerializeField] private LevelContainerFactory _levelFactory = default!;
+    [SerializeField] private LevelDefinition _defaultLevel = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        return builder
+            .AddScoped<ICursorService, CursorService>()
+            .AddSingleton(_levelFactory)
+            .AddSingleton(_defaultLevel)
+            .AddTransient<IRunnable, SessionState>();
+    }
+}
+```
+
+## MVC Pattern
+
+UI features use the framework's MVC system. Each feature has four parts:
+
+**Model** -- serializable data record with an enum ID. No logic.
+
+```csharp
+[Serializable]
+public record HudModel : Model<HudModelId>
+{
+    [SerializeField] private float _crosshairRestSize = 24f;
+    public float CrosshairRestSize => _crosshairRestSize;
+}
+```
+
+**View** -- MonoBehaviour implementing `IView`. Pure display, setter methods only. No business logic.
+
+```csharp
+public class HudView : MonoBehaviour, IView
+{
+    [SerializeField] private TMP_Text loadedAmmoText = default!;
+
+    public void SetAmmo(int loaded, int reserve) { /* update UI */ }
+
+    public UniTask OpenAnimation(CancellationToken token) => UniTask.CompletedTask;
+    public void OpenAnimationFinished() { }
+    public UniTask CloseAnimation(CancellationToken token) => UniTask.CompletedTask;
+    public void CloseAnimationFinished() { }
+}
+```
+
+**Controller** -- orchestrates model and view. Receives dependencies via `[Dependency]`.
+
+```csharp
+public sealed class HudController : Controller<HudModel, HudView>
+{
+    [Dependency] private readonly PlayerController _player = default!;
+
+    protected override async UniTask<VoidReturn> Run(HudView view, CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            await UniTask.Yield(PlayerLoopTiming.LastUpdate, token);
+            view.SetCrosshairSize(/* ... */);
+        }
+        return default;
+    }
+}
+```
+
+**Factory** -- ScriptableObject that wires the MVC triad into a container. Registered as a child in the parent factory.
+
+```csharp
+[FactoryMenuItem("HUD", "Slumber")]
+public sealed class HudFactory : Factory<HudModelId, HudModel, HudView, HudController> { }
+```
+
+Wire MVC factories into gameplay via `AddChild`:
+
+```csharp
+public sealed class GameplayContainerFactory : ContainerBuilderFactory
+{
+    [SerializeField] private PlayerFactory _playerFactory = default!;
+    [SerializeField] private HudFactory _hudFactory = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        return builder
+            .AddChild(_playerFactory)
+            .AddChild(_hudFactory)
+            .AddTransient<IRunnable, GameplayState>();
+    }
+}
+```
+
+## Reactive State with AsyncReactiveProperty
+
+The framework uses UniTask's `AsyncReactiveProperty<T>` (from `Cysharp.Threading.Tasks`) for observable, change-notifying state. Prefer reactive properties over C# events for any state that multiple consumers need to read or observe.
+
+### How the MVC model is wired
+
+The `Factory` base class automatically wraps the model in `AsyncReactiveProperty<TModel>` during container build. Controllers receive it via `[Dependency]` and access it through the `Model` property:
+
+```csharp
+// Framework does this internally -- you do NOT write this yourself:
+builder.AddScoped(_ => new AsyncReactiveProperty<TModel>(_model));
+
+// In your controller, the base class exposes:
+//   Model (get/set)        -- read or replace the current model
+//   ModelUpdated            -- IUniTaskAsyncEnumerable<TModel> for async iteration
+//   _model.WaitAsync(token) -- UniTask<TModel> that completes on next change
+```
+
+Setting `Model = newModel` triggers reactive notifications. Call `Refresh()` to re-notify without changing the model reference.
+
+### Shared reactive state via DI
+
+For state that multiple services or controllers need to observe, register an `AsyncReactiveProperty<T>` in a `ContainerBuilderFactory`. Do NOT use C# events (`event Action<T>`) for cross-component state.
+
+```csharp
+// GOOD -- register reactive state in a factory
+public sealed class GameContainerFactory : ContainerBuilderFactory
+{
+    [SerializeField] private SessionConfig _defaultConfig = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        return builder
+            .AddScoped(_ => new AsyncReactiveProperty<SessionConfig>(_defaultConfig))
+            .AddScoped<ISessionService, SessionService>()
+            .AddTransient<IRunnable, GameState>();
+    }
+}
+
+// GOOD -- service writes .Value, any consumer reads or observes
+public sealed class SessionService : ISessionService
+{
+    [Dependency] private readonly AsyncReactiveProperty<SessionConfig> _config = default!;
+
+    public void UpdateConfig(SessionConfig config) => _config.Value = config;
+}
+
+// GOOD -- controller awaits changes
+public sealed class LobbyController : Controller<LobbyModel, LobbyView>
+{
+    [Dependency] private readonly AsyncReactiveProperty<SessionConfig> _config = default!;
+
+    protected override async UniTask<VoidReturn> Run(LobbyView view, CancellationToken token)
+    {
+        await foreach (var config in _config.WithoutCurrent().WithCancellation(token))
+        {
+            view.SetRegion(config.Region);
+        }
+        return default;
+    }
+}
+
+// BAD -- C# events require manual subscribe/unsubscribe, miss initial state,
+//         and hold references after disposal
+public event Action<SessionConfig>? ConfigChanged;
+```
+
+### Read-only interface pattern
+
+When a service owns mutable state but consumers should only observe, expose `IReadOnlyAsyncReactiveProperty<T>` on the interface:
+
+```csharp
+public interface IPauseService
+{
+    IReadOnlyAsyncReactiveProperty<bool> IsPaused { get; }
+    void Pause();
+    void Resume();
+}
+
+public sealed class PauseService : IPauseService, IDisposable
+{
+    private readonly AsyncReactiveProperty<bool> _isPaused = new(false);
+
+    public IReadOnlyAsyncReactiveProperty<bool> IsPaused => _isPaused;
+
+    public void Pause() => _isPaused.Value = true;
+    public void Resume() => _isPaused.Value = false;
+    public void Dispose() => _isPaused.Dispose();
+}
+```
+
+### Key API
+
+| Method | Returns | Purpose |
+|--------|---------|---------|
+| `.Value` (get/set) | `T` | Read or write current value; setting notifies all subscribers |
+| `.WaitAsync(token)` | `UniTask<T>` | Completes on the next value change |
+| `.WithoutCurrent()` | `IUniTaskAsyncEnumerable<T>` | Async stream that skips the current value |
+| `GetAsyncEnumerator()` | `IUniTaskAsyncEnumerator<T>` | `await foreach` -- yields current value first, then changes |
+| `.Dispose()` | `void` | Completes all subscribers |
+
+### When to use C# events vs reactive properties
+
+| Scenario | Use |
+|----------|-----|
+| Observable state that consumers read AND subscribe to | `AsyncReactiveProperty<T>` |
+| State shared across multiple controllers/services via DI | `AsyncReactiveProperty<T>` registered in factory |
+| Read-only observable state on a service interface | `IReadOnlyAsyncReactiveProperty<T>` |
+| One-shot fire-and-forget notification with no state | C# `event` is acceptable |
+
+## Prohibited: FindAnyObjectByType and Unity Global Accessors
+
+Scene MonoBehaviours and Unity singletons must be resolved through DI, never through Unity's `Find*` methods or global accessors. These bypass the container, produce untracked null references, and prevent the DI system from failing fast on missing dependencies.
+
+```csharp
+// BAD -- bypasses DI, null result is silent, no lifecycle management
+var view = Object.FindAnyObjectByType<TitleScreenView>();
+if (view == null) { /* silent fallback */ }
+
+// BAD -- global accessor, can be null (wrong tag, destroyed, race condition)
+Camera cam = Camera.main;
+
+// BAD -- same problem under a different name
+var controller = FindObjectOfType<PixelPipelineController>();
+
+// GOOD -- scene MonoBehaviour registered via AddScene<T>, resolved by container
+// In the ContainerBuilderFactory:
+builder.AddScene<TitleScreenView>(sceneRef);
+// In the consuming class:
+[Dependency] private readonly TitleScreenView _view = default!;
+
+// GOOD -- MVC view resolved through Factory (preferred for UI features)
+// Factory registers Model, View, Controller as a unit via AddChild
+builder.AddChild(_titleScreenFactory);
+// Controller receives the view via its Run method parameter
+
+// GOOD -- camera registered in container, injected where needed
+[Dependency] private readonly Camera _camera = default!;
+```
+
+If a MonoBehaviour exists in a loaded scene, use `AddScene<T>` to register it. If it's a UI feature, use the MVC Factory pattern. The container throws `GameException` or `DiException` if the object is missing -- no silent nulls.
+
+## Services
+
+Define an interface, implement as a class, register via `AddScoped<IService, Impl>()`:
+
+```csharp
+public interface IInputService
+{
+    Vector2 MoveInput { get; }
+    bool FirePressed { get; }
+}
+
+public sealed class InputService : IInputService, IInitializable, IDisposable
+{
+    [Dependency] private readonly InputActionAsset _actions = default!;
+
+    public UniTask Initialize(CancellationToken token) { /* bind actions */ }
+    public void Dispose() { /* unbind */ }
+}
+```
+
+## Folder Structure
+
+Organize by feature domain with MVC subdirectories:
+
+```
+Assets/Scripts/
+  MainArgs.cs
+  AppContainerFactory.cs
+  States/
+    SessionState.cs
+    GameplayState.cs
+  Services/
+    IInputService.cs
+    InputService.cs
+  Data/
+    LevelDefinition.cs
+  Factories/
+    SessionContainerFactory.cs
+    LevelContainerFactory.cs
+    GameplayContainerFactory.cs
+  Player/
+    PlayerFactory.cs
+    Controllers/PlayerController.cs
+    Views/PlayerView.cs
+    Models/PlayerModel.cs
+  HUD/
+    HudFactory.cs
+    Controllers/HudController.cs
+    Views/HudView.cs
+    Models/HudModel.cs
+```
+
+## MVC Controller Lifecycle
+
+The framework's `Controller<TModel, TView, TResult>` provides a reactive pipeline driven by model changes, view availability, and user input. Each virtual method has a specific role -- do not conflate them.
+
+### Method Responsibilities
+
+| Method | Triggered by | Purpose | View access? |
+|--------|-------------|---------|--------------|
+| `Update(CancellationToken)` | Model change (automatic) | Sync model from external services/state | No |
+| `Update(TView, CancellationToken)` | Model change + view available | Push model state into view setters | Yes |
+| `Run(TView, CancellationToken)` | After open animations | Wait for user input, return result | Yes |
+
+**`Update(CancellationToken)`** -- Called every time `Model` changes (via `RunModel` loop). Use this to read external services and update the model with `Model = Model with { ... }`. No view reference -- model-only work.
+
+```csharp
+protected override void Update(CancellationToken token)
+{
+    if (Model.Score != _scoreService.CurrentScore)
+    {
+        Model = Model with { Score = _scoreService.CurrentScore };
+    }
+}
+```
+
+**`Update(TView, CancellationToken)`** -- Called after `Update(CT)` when a view exists. Auto-cancelled and restarted on model change. Push model state into view setters here.
+
+```csharp
+protected override UniTask Update(LobbyView view, CancellationToken token)
+{
+    view.SetPlayerName(Model.PlayerName);
+    view.SetRegion(Model.Region);
+    view.SetPlayerCount(Model.PlayerCount);
+    return UniTask.CompletedTask;
+}
+```
+
+**`Run(TView, CancellationToken)`** -- Runs after open animations complete. This is the input/flow loop: await user actions, branch, call sub-controllers, return a result. Do NOT put per-frame updates or model refresh logic here.
+
+```csharp
+protected override async UniTask<MenuResult> Run(MenuView view, CancellationToken token)
+{
+    while (true)
+    {
+        Input input = await NextInput(view, token);
+        switch (input)
+        {
+            case Input.Play: return MenuResult.Play;
+            case Input.Settings:
+                await _settingsController.Run(token);
+                break;
+            case Input.Quit: return MenuResult.Quit;
+        }
+    }
+}
+```
+
+### Button Input Pattern
+
+Use the framework's awaitable `OnClick(Button?, CancellationToken)` -- never `onClick.AddListener` or C# event delegates.
+
+```csharp
+// GOOD -- awaitable, analytics-integrated, auto-cleanup on cancellation
+protected override async UniTask<VoidReturn> Run(DialogView view, CancellationToken token)
+{
+    await OnClick(view.ConfirmButton, token);
+    return VoidReturn.Return;
+}
+
+// GOOD -- multi-button with enum mapping
+private async UniTask<Input> NextInput(MenuView view, CancellationToken token)
+{
+    return (Input)await UniTask.WhenAny(
+        OnClick(view.PlayButton, token),
+        OnClick(view.SettingsButton, token),
+        OnClick(view.QuitButton, token)
+    );
+}
+
+// BAD -- manual listener management, no analytics, leak-prone
+view.OnPlayClicked += OnPlay;
+try { await tcs.Task; }
+finally { view.OnPlayClicked -= OnPlay; }
+```
+
+Views expose `Button` references as properties. Do NOT wrap buttons in C# events on views:
+
+```csharp
+// GOOD -- view exposes the raw Button
+public Button PlayButton => _playButton;
+public Button QuitButton => _quitButton;
+
+// BAD -- view wraps buttons in events (forces listener pattern on controller)
+public event Action? OnPlayClicked;
+private void Awake() { _playButton.onClick.AddListener(() => OnPlayClicked?.Invoke()); }
+```
+
+### Model Immutability
+
+Models are `record` types. Update them via `with` expressions -- never mutate fields directly on the controller:
+
+```csharp
+// GOOD -- triggers RunModel pipeline (Update -> Update(view) automatically)
+Model = Model with { LoadedAmmo = Model.LoadedAmmo - 1 };
+
+// BAD -- mutable field on controller, bypasses reactive pipeline
+private int loadedAmmo;
+loadedAmmo--;
+```
+
+Setting `Model` triggers the `RunModel` loop which calls `Update(CT)` then `Update(view, CT)` automatically. Call `Refresh()` to re-trigger without changing the model reference.
+
+### Show/Hide
+
+Do NOT call `view.Show()` / `view.Hide()` manually. The framework manages visibility through:
+- `OpenAnimation(CancellationToken)` / `CloseAnimation(CancellationToken)` on the view
+- The `RunView` lifecycle (checkout from pool -> Initialize -> Update -> Show -> wait for completion -> Hide -> release)
+- Controller's `Show()` / `Hide()` methods (on the controller, not the view) orchestrate the above
+
+### Continuous Gameplay Controllers
+
+Per-frame simulation controllers (Player, Weapon, HUD) are a valid exception to the `Run`-as-input-only rule. These controllers:
+- Use `VoidReturn` (no meaningful result)
+- Run via `Enable()` (fire-and-forget) and loop until scope cancellation
+- Perform per-frame simulation in `Run()` because their "input" IS the per-frame game loop
+
+Even so, they should:
+- Read tuning constants from `Model` (not hardcoded)
+- Publish observable state via `AsyncReactiveProperty<T>` (not C# events)
+- Move pure view-binding into `Update(TView, CT)` when practical
+
+```csharp
+// Acceptable -- per-frame gameplay controller
+protected override async UniTask<VoidReturn> Run(PlayerView view, CancellationToken token)
+{
+    while (!token.IsCancellationRequested)
+    {
+        await UniTask.Yield(PlayerLoopTiming.Update, token);
+        // simulation logic using Model for tuning, _input for input
+        // publish state for other controllers to observe
+        _runtimeState.Value = new PlayerRuntimeState(...);
+    }
+    return default;
+}
+```
+
+### Controller Result Types
+
+| Pattern | Base class | When to use |
+|---------|-----------|-------------|
+| `Controller<TModel, TView>` | Returns `VoidReturn` | Continuous/always-on controllers (gameplay, HUD) |
+| `Controller<TModel, TView, TResult>` | Returns `TResult` | Flow controllers that complete with a decision (menus, dialogs) |
+
+Parents await flow controllers: `ResultV<TResult> result = await controller.Run(token);`
+Parents fire-and-forget gameplay controllers: `controller.Enable();`
+
+## C# Conventions
+
+- All files: `#nullable enable` at top, `#nullable disable` at bottom.
+- `[Dependency]` fields: `private readonly T _field = default!;`
+- `[SerializeField]` fields: `private T _field = default!;`
+- Namespace: match folder path under project root (e.g., `DeepForestLabs.Slumber.States`).
