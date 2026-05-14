@@ -96,3 +96,38 @@ These are ScriptableObject assets assigned in the Unity Inspector, NOT instantia
 | `IDisposable` | Cleanup | Container on scope cancellation |
 
 States implement `IRunnable`. Services that need async setup implement `IInitializable`. The container orchestrates all of these automatically -- do not call `Initialize` or `Dispose` manually.
+
+## Error Propagation
+
+The framework handles unhandled exceptions automatically. Game code must NOT catch and swallow exceptions -- let them propagate through the container hierarchy to the framework's error pipeline.
+
+### Exception flow
+
+```
+Game code throws (any IRunnable, Controller, Service)
+  -> Container scope disposes (CancellationToken cancelled, IDisposable.Dispose called)
+    -> Parent container's await completes with the exception
+      -> ... bubbles up through container hierarchy ...
+        -> MainState catches the exception
+          -> IErrorReporter.CaptureException (Sentry reporting)
+          -> IMain.ShowingErrorPopup (app lifecycle hook)
+          -> IErrorStateController.Run (error UI -- blocks until dismissed)
+          -> IMain.DismissingErrorPopup
+          -> App loop restarts from the top
+```
+
+### What MainState handles
+
+| Exception type | Behavior |
+|----------------|----------|
+| `OperationCanceledException` | Propagated (scope shutdown) |
+| `ResetException` | Logged, app restarts without error UI |
+| `RefreshExpiredException` | Runs `IRefreshExpiredState`, then restarts |
+| Any other `Exception` | Reported to Sentry, error UI shown, app restarts |
+
+### Game code responsibilities
+
+- Register `IErrorStateController` in `MainArgs` (development: log + return; production: show error popup)
+- Register `IErrorReporter` in `MainArgs` (`SentryErrorReporter` for production, `NullErrorReporter` for local dev)
+- Implement `IMain` lifecycle hooks (`ShowingErrorPopup`, `DismissingErrorPopup`) if the app needs pre/post error UI behavior
+- Do NOT add generic `catch (Exception)` blocks in game states or controllers -- the framework already handles this

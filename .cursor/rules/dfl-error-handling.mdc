@@ -1,0 +1,122 @@
+---
+description: DFL error handling policy -- let exceptions propagate, never swallow structural failures, trust the framework's error pipeline
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# DFL Error Handling
+
+## Core Principle: Throw Hard
+
+The framework is designed to catch and handle unhandled exceptions at the top level (`MainState`). Game code must NOT intercept structural failures -- let them propagate. The framework will:
+
+1. Dispose the faulting container scope (cleaning up resources)
+2. Report the exception via `IErrorReporter` (Sentry in production)
+3. Show an error state via `IErrorStateController`
+4. Restart the app loop
+
+```
+Game code throws
+  -> Container scope disposes
+    -> MainState catches
+      -> IErrorReporter.CaptureException (Sentry)
+      -> IMain.ShowingErrorPopup
+      -> IErrorStateController.Run (error UI)
+      -> IMain.DismissingErrorPopup
+      -> Restart app loop
+```
+
+Do NOT short-circuit this pipeline by catching and swallowing exceptions.
+
+## Prohibited: Generic catch-and-continue
+
+Never catch `Exception` in a loop and continue. This turns structural failures (missing assets, broken config, null managers) into infinite retry loops.
+
+```csharp
+// BAD -- swallows all failures, loops forever on structural errors
+while (!token.IsCancellationRequested)
+{
+    try
+    {
+        await RunLevel(level, token);
+    }
+    catch (Exception e)
+    {
+        Log.Error("Level failed: {0}", e.Message);
+    }
+}
+
+// GOOD -- catch only intentional flow-control exceptions, let everything else propagate
+while (!token.IsCancellationRequested)
+{
+    try
+    {
+        await RunLevel(level, token);
+    }
+    catch (QuitToTitleException)
+    {
+        Log.Info("Returned to title from gameplay");
+    }
+    catch (OperationCanceledException)
+    {
+        throw;
+    }
+}
+```
+
+## Allowed catch patterns
+
+| Pattern | When to use |
+|---------|-------------|
+| `catch (SpecificException)` + continue | Intentional flow control (e.g. `QuitToTitleException`) |
+| `catch (OperationCanceledException)` + `throw` | Always rethrow cancellation |
+| `try/finally` | Cleanup (unsubscribe, hide UI, unlock cursor) -- no exception suppression |
+| `catch (Exception)` + `throw` | Wrapping with context, then rethrowing (rare) |
+
+## Prohibited: Log.Error or Log.Warning as error handling
+
+`Log.Error` and `Log.Warning` are diagnostic output, NOT error handling. If a condition is an error, throw. If it's a precondition violation, use `Log.Assert`.
+
+```csharp
+// BAD -- logs a warning and continues with broken state
+if (view == null)
+{
+    Log.Warning("No view found, using default");
+    return defaultResult;
+}
+
+// GOOD -- assert the precondition; throws in dev, compiles out in release
+Log.Assert(view != null, "view != null");
+
+// GOOD -- throw if this is a runtime error that can't be asserted away
+if (config.SceneRef == null)
+    throw new GameException("LevelDefinition has no scene reference assigned.");
+```
+
+## OperationCanceledException
+
+Always rethrow `OperationCanceledException`. Never catch it without rethrowing -- it signals scope disposal and must propagate to the container.
+
+```csharp
+// BAD -- swallows cancellation, scope cleanup breaks
+catch (OperationCanceledException) { }
+
+// BAD -- generic catch swallows cancellation too
+catch (Exception e) { Log.Error(e.Message); }
+
+// GOOD -- explicit rethrow
+catch (OperationCanceledException) { throw; }
+
+// GOOD -- separate catch before generic (if generic is truly needed)
+catch (OperationCanceledException) { throw; }
+catch (Exception e) { /* wrap and rethrow */ throw new GameException("Context", e); }
+```
+
+## IErrorStateController
+
+Games register an `IErrorStateController` in `MainArgs`. This is the ONLY place unhandled exceptions should be surfaced to the user:
+
+- Development: log the exception with full stack trace, then return (let the framework restart)
+- Production: show an error popup, wait for user acknowledgment, then return
+
+The controller runs OUTSIDE the faulting container scope (it's already disposed). Do not attempt to access game state from the error controller.

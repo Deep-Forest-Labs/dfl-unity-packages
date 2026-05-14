@@ -61,6 +61,38 @@ Log.Assert(args != null, "args != null, Args not found at '{0}'", MAIN_ARGS_RESO
 Log.Assert(!string.IsNullOrEmpty(_guid), "!string.IsNullOrEmpty(_guid)");
 ```
 
+## View SerializeField Validation
+
+Views declare `[SerializeField]` fields with `default!`, establishing a non-null contract. Unity's serialization can silently violate this contract (miswired prefab, missing reference). Validate all required SerializeField references early -- never null-guard-and-skip in setters.
+
+```csharp
+// BAD -- silently skips when prefab is miswired; broken HUD with zero errors
+public void SetAmmo(int loaded, int reserve)
+{
+    if (loadedAmmoText != null) loadedAmmoText.text = loaded.ToString();
+    if (reserveAmmoText != null) reserveAmmoText.text = reserve.ToString();
+}
+
+// GOOD -- assert in Awake; broken prefab fails immediately in dev builds
+private void Awake()
+{
+    Log.Assert(loadedAmmoText != null, "loadedAmmoText != null");
+    Log.Assert(reserveAmmoText != null, "reserveAmmoText != null");
+    Log.Assert(crosshairRoot != null, "crosshairRoot != null");
+}
+
+// GOOD -- setters trust the contract, no null guards
+public void SetAmmo(int loaded, int reserve)
+{
+    loadedAmmoText.text = loaded.ToString();
+    reserveAmmoText.text = reserve.ToString();
+}
+```
+
+`Log.Assert` throws `AssertionException` in non-release builds and compiles out in release. This means:
+- In development: broken prefabs crash immediately with a clear message
+- In release: the `default!` contract holds because the prefab was validated during development
+
 ## Dependency Field Convention
 
 Mark injected fields as `private readonly T _field = default!;` (null-forgiving operator). The DI system assigns them during container build. Do not initialize them manually.

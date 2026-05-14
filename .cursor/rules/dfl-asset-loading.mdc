@@ -79,6 +79,35 @@ var handle = Addressables.LoadSceneAsync(level.SceneRef, LoadSceneMode.Additive)
 await Addressables.UnloadSceneAsync(sceneInstance);
 ```
 
+## Scene MonoBehaviour Injection
+
+Use the generic `AddScene<T>()` overloads to register MonoBehaviours from a loaded scene as injectable dependencies. The framework scans the scene's root objects for the specified type and throws `GameException` if not found. This replaces `FindAnyObjectByType` / `FindObjectOfType`.
+
+```csharp
+// GOOD -- register scene MonoBehaviours through the container
+public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+{
+    return builder
+        .AddScene<PixelPipelineController>(_sceneRef)   // single type
+        .AddScene<PlayerSpawn, EnemySpawn>(_sceneRef)    // two types from same scene
+        .AddTransient<IRunnable, LevelState>();
+}
+
+// Then inject via [Dependency] -- guaranteed non-null or Build() throws
+public sealed class PixelPipelineService : IPixelPipelineService
+{
+    [Dependency] private readonly PixelPipelineController _controller = default!;
+
+    public void SetWorldZoom(float zoom) => _controller.WorldZoom = zoom;
+}
+
+// BAD -- bypasses DI, null result is silent, requires null guards everywhere
+controller = Object.FindAnyObjectByType<PixelPipelineController>();
+if (controller == null) Debug.LogWarning("Not found");
+```
+
+When a scene is loaded via `AddScene(SceneAssetRef)`, the `AddScene<T>` overload reuses that same scene reference. The `Find<T>` resolver waits for the scene to finish loading, then scans root GameObjects. If the MonoBehaviour is not found, `Build()` fails with a `GameException` -- making missing scene objects a build-time error, not a silent runtime null.
+
 ## Available AssetRef Types
 
 | Type | Builder method | Injects as |
