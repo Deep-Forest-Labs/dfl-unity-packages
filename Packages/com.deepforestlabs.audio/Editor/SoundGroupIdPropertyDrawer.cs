@@ -12,8 +12,7 @@ namespace DeepForestLabs.Audio.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            SerializedProperty? nameProp = FindNameProperty(property);
-            string current = nameProp?.stringValue ?? string.Empty;
+            string current = GetGroupName(property);
 
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
@@ -31,12 +30,12 @@ namespace DeepForestLabs.Audio.Editor
 
             int newIndex = EditorGUI.Popup(dropdownRect, label.text, displayIndex, displayOptions);
 
-            if (newIndex != displayIndex && nameProp != null)
+            if (newIndex != displayIndex)
             {
                 if (newIndex < groups.Length)
-                    nameProp.stringValue = groups[newIndex];
+                    SetGroupName(property, groups[newIndex]);
                 else
-                    nameProp.stringValue = string.Empty;
+                    SetGroupName(property, string.Empty);
             }
 
             bool showCustomField = newIndex >= groups.Length;
@@ -45,8 +44,8 @@ namespace DeepForestLabs.Audio.Editor
                 Rect textRect = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2f,
                     position.width, EditorGUIUtility.singleLineHeight);
                 string value = EditorGUI.TextField(textRect, "Custom Name", current);
-                if (nameProp != null)
-                    nameProp.stringValue = value;
+                if (value != current)
+                    SetGroupName(property, value);
             }
 
             EditorGUI.EndProperty();
@@ -54,8 +53,7 @@ namespace DeepForestLabs.Audio.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            SerializedProperty? nameProp = FindNameProperty(property);
-            string current = nameProp?.stringValue ?? string.Empty;
+            string current = GetGroupName(property);
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
             bool isCustom = selectedIndex < 0 && current.Length > 0;
@@ -66,10 +64,16 @@ namespace DeepForestLabs.Audio.Editor
             return EditorGUIUtility.singleLineHeight;
         }
 
-        private static SerializedProperty? FindNameProperty(SerializedProperty property)
+        private static string GetGroupName(SerializedProperty property)
         {
-            return property.FindPropertyRelative("_name")
-                ?? property.serializedObject.FindProperty(property.propertyPath + "._name");
+            if (property.boxedValue is SoundGroupId groupId)
+                return groupId.Name ?? string.Empty;
+            return string.Empty;
+        }
+
+        private static void SetGroupName(SerializedProperty property, string name)
+        {
+            property.boxedValue = new SoundGroupId(name ?? string.Empty);
         }
 
         private static string[] GetAvailableGroups()

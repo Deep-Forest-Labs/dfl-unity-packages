@@ -42,7 +42,15 @@ namespace DeepForestLabs.Audio.Editor
             EditorGUILayout.Space();
             if (GUILayout.Button("Add Entry"))
             {
-                _entries.InsertArrayElementAtIndex(_entries.arraySize);
+                int index = _entries.arraySize;
+                _entries.InsertArrayElementAtIndex(index);
+                SerializedProperty newEntry = _entries.GetArrayElementAtIndex(index);
+                newEntry.FindPropertyRelative("_key").stringValue = string.Empty;
+                newEntry.FindPropertyRelative("_defaultVolume").floatValue = 1f;
+                newEntry.FindPropertyRelative("_defaultPan").floatValue = 0f;
+                newEntry.FindPropertyRelative("_maxInstances").intValue = 0;
+                newEntry.FindPropertyRelative("_poolPrewarm").intValue = 0;
+                newEntry.FindPropertyRelative("_preload").boolValue = false;
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -110,10 +118,9 @@ namespace DeepForestLabs.Audio.Editor
             {
                 SerializedProperty entry = _entries.GetArrayElementAtIndex(i);
                 SerializedProperty groupProp = entry.FindPropertyRelative("_group");
-                SerializedProperty nameProp = groupProp?.FindPropertyRelative("_name");
-                string groupName = nameProp?.stringValue;
-                if (string.IsNullOrEmpty(groupName))
-                    groupName = "(None)";
+                string groupName = "(None)";
+                if (groupProp?.boxedValue is SoundGroupId groupId && !string.IsNullOrEmpty(groupId.Name))
+                    groupName = groupId.Name;
 
                 if (!groups.ContainsKey(groupName))
                     groups[groupName] = new List<int>();
