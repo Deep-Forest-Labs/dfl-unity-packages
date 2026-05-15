@@ -32,6 +32,9 @@ namespace DeepForestLabs.States.Main
 		    _errorReporter.StartSession();
 		    _main.Start();
 		    
+		    if (_main is IMainInitializable initializable)
+			    await initializable.InitializeAsync(_container, token);
+		    
 		    while (true)
 	        {
 		        Exception? unhandled = null;

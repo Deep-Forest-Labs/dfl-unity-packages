@@ -171,25 +171,32 @@ namespace DeepForestLabs.Assets.Addressables
             // Editor: if using Asset Database (fastest), skip external catalog loads
             if (BuildSettings.Instance.Addressables.ActivePlayModeIndex == BuilderIndex.AssetDatabasePlayMode)
             {
-                // Just ensure Addressables is initialized so ResourceLocators are populated.
-                AsyncOperationHandle<IResourceLocator> initOperation = AddressablesImpl.InitializeAsync();
-                try
+                if (AddressablesImpl.ResourceLocators.Any())
                 {
-                    await initOperation.ToUniTask(cancellationToken: token);
                     _locators.Clear();
                     _locators.AddRange(AddressablesImpl.ResourceLocators);
                 }
-                catch (OperationCanceledException)
+                else
                 {
-                    throw;
-                }
-                catch (Exception e)
-                {
-                    throw new GameException("[AddressablesManager] Failed to initialize.", e);
-                }
-                finally
-                {
-                    SafeReleaseInitialize(initOperation);
+                    AsyncOperationHandle<IResourceLocator> initOperation = AddressablesImpl.InitializeAsync();
+                    try
+                    {
+                        await initOperation.ToUniTask(cancellationToken: token);
+                        _locators.Clear();
+                        _locators.AddRange(AddressablesImpl.ResourceLocators);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new GameException("[AddressablesManager] Failed to initialize.", e);
+                    }
+                    finally
+                    {
+                        SafeReleaseInitialize(initOperation);
+                    }
                 }
             }
             else
@@ -385,11 +392,17 @@ namespace DeepForestLabs.Assets.Addressables
             _gameObjectManagers.Clear();
             _typedGameObjectManagers.Clear();
 
-            ForceReleaseAllAsyncOperationHandles();
-
-            foreach (IResourceLocator? locator in _locators)
+#if UNITY_EDITOR
+            bool isAssetDatabaseMode = BuildSettings.Instance.Addressables.ActivePlayModeIndex == BuilderIndex.AssetDatabasePlayMode;
+            if (!isAssetDatabaseMode)
+#endif
             {
-                AddressablesImpl.RemoveResourceLocator(locator);
+                ForceReleaseAllAsyncOperationHandles();
+
+                foreach (IResourceLocator? locator in _locators)
+                {
+                    AddressablesImpl.RemoveResourceLocator(locator);
+                }
             }
             _locators.Clear();
         }
