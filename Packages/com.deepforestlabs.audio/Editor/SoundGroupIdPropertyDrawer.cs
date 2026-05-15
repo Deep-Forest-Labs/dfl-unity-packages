@@ -66,29 +66,14 @@ namespace DeepForestLabs.Audio.Editor
 
         internal static string GetGroupName(SerializedProperty property)
         {
-            SerializedProperty? nameProp = FindNameChild(property);
-            return nameProp?.stringValue ?? string.Empty;
+            return property.FindPropertyRelative("_name")?.stringValue ?? string.Empty;
         }
 
         private static void SetGroupName(SerializedProperty property, string name)
         {
-            SerializedProperty? nameProp = FindNameChild(property);
+            SerializedProperty nameProp = property.FindPropertyRelative("_name");
             if (nameProp != null)
                 nameProp.stringValue = name ?? string.Empty;
-        }
-
-        private static SerializedProperty? FindNameChild(SerializedProperty property)
-        {
-            SerializedProperty iter = property.Copy();
-            SerializedProperty end = property.GetEndProperty();
-            if (!iter.Next(true))
-                return null;
-            do
-            {
-                if (iter.name == "_name" && iter.propertyType == SerializedPropertyType.String)
-                    return iter;
-            } while (iter.Next(false) && !SerializedProperty.EqualContents(iter, end));
-            return null;
         }
 
         private static string[] GetAvailableGroups()

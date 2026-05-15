@@ -5,13 +5,13 @@ using UnityEngine;
 namespace DeepForestLabs.Audio
 {
     [Serializable]
-    public readonly struct SoundGroupId : IEquatable<SoundGroupId>
+    public struct SoundGroupId : IEquatable<SoundGroupId>
     {
         public static readonly SoundGroupId Bgm = new("BGM");
         public static readonly SoundGroupId Sfx = new("SFX");
         public static readonly SoundGroupId Ui = new("UI");
 
-        [SerializeField] private readonly string _name;
+        [SerializeField] private string _name;
 
         public string Name => _name;
 
