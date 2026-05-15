@@ -152,23 +152,11 @@ namespace DeepForestLabs.Audio.Editor
             SerializedProperty entry = _entries.GetArrayElementAtIndex(index);
             SerializedProperty keyProp = entry.FindPropertyRelative("_key");
             SerializedProperty clipProp = entry.FindPropertyRelative("_clip");
-            SerializedProperty volumeProp = entry.FindPropertyRelative("_defaultVolume");
-            SerializedProperty panProp = entry.FindPropertyRelative("_defaultPan");
-            SerializedProperty maxInstProp = entry.FindPropertyRelative("_maxInstances");
 
             EditorGUILayout.BeginHorizontal();
 
             EditorGUILayout.PropertyField(keyProp, GUIContent.none, GUILayout.Width(120));
-            EditorGUILayout.PropertyField(clipProp, GUIContent.none, GUILayout.MinWidth(100));
-
-            EditorGUILayout.LabelField("Vol", GUILayout.Width(24));
-            volumeProp.floatValue = EditorGUILayout.Slider(volumeProp.floatValue, 0f, 1f, GUILayout.Width(100));
-
-            EditorGUILayout.LabelField("Pan", GUILayout.Width(24));
-            panProp.floatValue = EditorGUILayout.Slider(panProp.floatValue, -1f, 1f, GUILayout.Width(100));
-
-            EditorGUILayout.LabelField("Max", GUILayout.Width(28));
-            maxInstProp.intValue = EditorGUILayout.IntField(maxInstProp.intValue, GUILayout.Width(30));
+            EditorGUILayout.PropertyField(clipProp, new GUIContent(), GUILayout.MinWidth(80));
 
             bool isExpanded = _expandedRows.Contains(index);
             if (GUILayout.Button(isExpanded ? "▼" : "►", GUILayout.Width(24)))
@@ -195,6 +183,9 @@ namespace DeepForestLabs.Audio.Editor
             if (_expandedRows.Contains(index))
             {
                 EditorGUI.indentLevel += 2;
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_defaultVolume"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_defaultPan"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_maxInstances"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_group"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_poolPrewarm"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_preload"));
