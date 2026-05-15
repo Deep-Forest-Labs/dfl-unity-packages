@@ -199,15 +199,14 @@ namespace DeepForestLabs.DependencyInjection.Assets
 
             if (assetRef != null)
             {
-                switch (assetRef.Mode)
+                string suffix = assetRef.Mode switch
                 {
-                    case AssetRefMode.Resources:
-                        label.text += " (R)";
-                        break;
-                    case AssetRefMode.Addressables:
-                        label.text += " (A)";
-                        break;
-                }
+                    AssetRefMode.Resources => " (R)",
+                    AssetRefMode.Addressables => " (A)",
+                    _ => string.Empty
+                };
+                if (suffix.Length > 0)
+                    label = new GUIContent(label.text + suffix, label.tooltip);
             }
 
             Color color = GUI.color;
