@@ -12,8 +12,8 @@ namespace DeepForestLabs.Audio.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            SerializedProperty nameProp = property.FindPropertyRelative("_name");
-            string current = nameProp.stringValue ?? string.Empty;
+            SerializedProperty? nameProp = property.FindPropertyRelative("_name");
+            string current = nameProp?.stringValue ?? string.Empty;
 
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
@@ -30,7 +30,7 @@ namespace DeepForestLabs.Audio.Editor
 
             int newIndex = EditorGUI.Popup(dropdownRect, label.text, displayIndex, displayOptions);
 
-            if (newIndex != displayIndex)
+            if (nameProp != null && newIndex != displayIndex)
             {
                 if (newIndex < groups.Length)
                 {
@@ -42,7 +42,9 @@ namespace DeepForestLabs.Audio.Editor
             {
                 Rect textRect = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2f,
                     position.width, EditorGUIUtility.singleLineHeight);
-                nameProp.stringValue = EditorGUI.TextField(textRect, "Custom Name", current);
+                string value = EditorGUI.TextField(textRect, "Custom Name", current);
+                if (nameProp != null)
+                    nameProp.stringValue = value;
             }
 
             EditorGUI.EndProperty();
@@ -50,8 +52,8 @@ namespace DeepForestLabs.Audio.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            SerializedProperty nameProp = property.FindPropertyRelative("_name");
-            string current = nameProp.stringValue ?? string.Empty;
+            SerializedProperty? nameProp = property.FindPropertyRelative("_name");
+            string current = nameProp?.stringValue ?? string.Empty;
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
 
