@@ -301,10 +301,11 @@ namespace DeepForestLabs.MVC.Controllers
                 if (result == null)
                 {
                     skipToken = CreateSkipToken(view, SkippableControlStates.Running, token);
-                    skipToken = UniTask.WaitUntil(IsProcessing, cancellationToken: skipToken)
+                    CancellationToken processToken = UniTask.WaitUntil(IsProcessing, cancellationToken: skipToken)
                         .ToCancellationToken();
+                    using var runCts = CancellationTokenSource.CreateLinkedTokenSource(processToken, token);
 
-                    (bool IsCanceled, TResult Value) runResult = await Run(view, skipToken)
+                    (bool IsCanceled, TResult Value) runResult = await Run(view, runCts.Token)
                         .SuppressCancellationThrow();
                     token.ThrowIfCancellationRequested();
 
