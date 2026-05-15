@@ -12,11 +12,12 @@ namespace DeepForestLabs.Audio.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            SerializedProperty? nameProp = property.FindPropertyRelative("_name");
+            SerializedProperty? nameProp = FindNameProperty(property);
             string current = nameProp?.stringValue ?? string.Empty;
 
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
+            bool isCustom = selectedIndex < 0 && current.Length > 0;
 
             EditorGUI.BeginProperty(position, label, property);
 
@@ -26,19 +27,20 @@ namespace DeepForestLabs.Audio.Editor
             System.Array.Copy(groups, displayOptions, groups.Length);
             displayOptions[groups.Length] = "Custom...";
 
-            int displayIndex = selectedIndex >= 0 ? selectedIndex : groups.Length;
+            int displayIndex = isCustom ? groups.Length : (selectedIndex >= 0 ? selectedIndex : 0);
 
             int newIndex = EditorGUI.Popup(dropdownRect, label.text, displayIndex, displayOptions);
 
-            if (nameProp != null && newIndex != displayIndex)
+            if (newIndex != displayIndex && nameProp != null)
             {
                 if (newIndex < groups.Length)
-                {
                     nameProp.stringValue = groups[newIndex];
-                }
+                else
+                    nameProp.stringValue = string.Empty;
             }
 
-            if (newIndex >= groups.Length || selectedIndex < 0)
+            bool showCustomField = newIndex >= groups.Length;
+            if (showCustomField)
             {
                 Rect textRect = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2f,
                     position.width, EditorGUIUtility.singleLineHeight);
@@ -52,17 +54,22 @@ namespace DeepForestLabs.Audio.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            SerializedProperty? nameProp = property.FindPropertyRelative("_name");
+            SerializedProperty? nameProp = FindNameProperty(property);
             string current = nameProp?.stringValue ?? string.Empty;
             string[] groups = GetAvailableGroups();
             int selectedIndex = System.Array.IndexOf(groups, current);
+            bool isCustom = selectedIndex < 0 && current.Length > 0;
 
-            if (selectedIndex < 0)
-            {
+            if (isCustom)
                 return EditorGUIUtility.singleLineHeight * 2f + 2f;
-            }
 
             return EditorGUIUtility.singleLineHeight;
+        }
+
+        private static SerializedProperty? FindNameProperty(SerializedProperty property)
+        {
+            return property.FindPropertyRelative("_name")
+                ?? property.serializedObject.FindProperty(property.propertyPath + "._name");
         }
 
         private static string[] GetAvailableGroups()
