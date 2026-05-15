@@ -171,7 +171,7 @@ namespace DeepForestLabs.Assets.Addressables
             // Editor: if using Asset Database (fastest), skip external catalog loads
             if (BuildSettings.Instance.Addressables.ActivePlayModeIndex == BuilderIndex.AssetDatabasePlayMode)
             {
-                if (AddressablesImpl.ResourceLocators.Any())
+                if (AddressablesImpl.ResourceLocators.AsValueEnumerable().Any())
                 {
                     _locators.Clear();
                     _locators.AddRange(AddressablesImpl.ResourceLocators);
