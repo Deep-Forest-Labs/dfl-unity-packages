@@ -36,6 +36,7 @@ namespace DeepForestLabs.BuildSystems
 		{
 			if (stateChange == PlayModeStateChange.ExitingEditMode)
 			{
+				BuildSettingsEditor.Write((BuilderIndex)ProjectConfigData.ActivePlayModeIndex);
 				BuildSettingsEditor.Write(BuildSystemEntryPoint.ReadArgs());
 			}
 		}
