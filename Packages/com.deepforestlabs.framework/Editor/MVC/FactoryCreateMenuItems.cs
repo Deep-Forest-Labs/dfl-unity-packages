@@ -24,6 +24,11 @@ namespace DeepForestLabs.MVC
             
         static FactoryCreateMenuItems()
         {
+            CompilationPipeline.compilationStarted += _ =>
+            {
+                HAS_COMPILE_ERRORS = false;
+                HAS_CREATED_MENU_ITEMS = false;
+            };
             CompilationPipeline.assemblyCompilationFinished += OnCompilationFinished;
             AssemblyReloadEvents.afterAssemblyReload += CreateMenus;
         }
