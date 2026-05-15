@@ -182,13 +182,15 @@ namespace DeepForestLabs.Audio.Editor
                 TestPlayEntry(entry);
             }
 
-            if (GUILayout.Button("×", GUILayout.Width(20)))
+            bool deleted = GUILayout.Button("×", GUILayout.Width(20));
+
+            EditorGUILayout.EndHorizontal();
+
+            if (deleted)
             {
                 _entries.DeleteArrayElementAtIndex(index);
                 return;
             }
-
-            EditorGUILayout.EndHorizontal();
 
             if (_expandedRows.Contains(index))
             {
