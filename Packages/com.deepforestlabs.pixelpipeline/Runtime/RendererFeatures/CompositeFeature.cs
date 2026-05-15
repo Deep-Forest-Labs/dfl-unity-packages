@@ -9,7 +9,7 @@ namespace DeepForestLabs.PixelPipeline
     /// <summary>
     /// Runs on the Composite camera before post-processing. Writes a fullscreen
     /// blit that reads _FarRT and _NearRT (set as global textures by
-    /// PixelPipelineController) and lerps between them using the alpha channel
+    /// PixelPipelineView) and lerps between them using the alpha channel
     /// of _NearRT. Point sampling preserves the pixel look.
     /// </summary>
     public class CompositeFeature : ScriptableRendererFeature

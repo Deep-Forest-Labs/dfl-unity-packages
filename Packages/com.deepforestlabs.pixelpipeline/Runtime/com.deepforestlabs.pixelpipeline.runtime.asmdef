@@ -3,6 +3,7 @@
   "rootNamespace": "DeepForestLabs.PixelPipeline",
   "references": [
     "DeepForestLabs",
+    "UniTask",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.RenderPipelines.Core.Runtime"
   ],

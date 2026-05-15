@@ -1,4 +1,7 @@
 #nullable enable
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using DeepForestLabs.MVC.Views;
 using UnityEngine;
 
 namespace DeepForestLabs.PixelPipeline
@@ -13,7 +16,7 @@ namespace DeepForestLabs.PixelPipeline
     /// </summary>
     [DefaultExecutionOrder(-100)]
     [ExecuteAlways]
-    public class PixelPipelineController : MonoBehaviour
+    public class PixelPipelineView : MonoBehaviour, IView
     {
         [Header("Cameras")]
         [SerializeField] private Camera farCamera;
@@ -311,6 +314,11 @@ namespace DeepForestLabs.PixelPipeline
             Shader.SetGlobalFloat(FadeStartId, fadeStart);
             Shader.SetGlobalFloat(FadeEndId, fadeEnd);
         }
+
+        public UniTask OpenAnimation(CancellationToken token) => UniTask.CompletedTask;
+        public void OpenAnimationFinished() { }
+        public UniTask CloseAnimation(CancellationToken token) => UniTask.CompletedTask;
+        public void CloseAnimationFinished() { }
     }
 }
 #nullable disable
