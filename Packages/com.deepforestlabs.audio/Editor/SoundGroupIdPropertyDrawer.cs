@@ -64,16 +64,31 @@ namespace DeepForestLabs.Audio.Editor
             return EditorGUIUtility.singleLineHeight;
         }
 
-        private static string GetGroupName(SerializedProperty property)
+        internal static string GetGroupName(SerializedProperty property)
         {
-            if (property.boxedValue is SoundGroupId groupId)
-                return groupId.Name ?? string.Empty;
-            return string.Empty;
+            SerializedProperty? nameProp = FindNameChild(property);
+            return nameProp?.stringValue ?? string.Empty;
         }
 
         private static void SetGroupName(SerializedProperty property, string name)
         {
-            property.boxedValue = new SoundGroupId(name ?? string.Empty);
+            SerializedProperty? nameProp = FindNameChild(property);
+            if (nameProp != null)
+                nameProp.stringValue = name ?? string.Empty;
+        }
+
+        private static SerializedProperty? FindNameChild(SerializedProperty property)
+        {
+            SerializedProperty iter = property.Copy();
+            SerializedProperty end = property.GetEndProperty();
+            if (!iter.Next(true))
+                return null;
+            do
+            {
+                if (iter.name == "_name" && iter.propertyType == SerializedPropertyType.String)
+                    return iter;
+            } while (iter.Next(false) && !SerializedProperty.EqualContents(iter, end));
+            return null;
         }
 
         private static string[] GetAvailableGroups()

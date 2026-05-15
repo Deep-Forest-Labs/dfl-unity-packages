@@ -119,8 +119,12 @@ namespace DeepForestLabs.Audio.Editor
                 SerializedProperty entry = _entries.GetArrayElementAtIndex(i);
                 SerializedProperty groupProp = entry.FindPropertyRelative("_group");
                 string groupName = "(None)";
-                if (groupProp?.boxedValue is SoundGroupId groupId && !string.IsNullOrEmpty(groupId.Name))
-                    groupName = groupId.Name;
+                if (groupProp != null)
+                {
+                    string resolved = SoundGroupIdPropertyDrawer.GetGroupName(groupProp);
+                    if (!string.IsNullOrEmpty(resolved))
+                        groupName = resolved;
+                }
 
                 if (!groups.ContainsKey(groupName))
                     groups[groupName] = new List<int>();
