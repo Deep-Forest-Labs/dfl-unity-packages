@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace DeepForestLabs.Audio
         [Dependency] private readonly IContainer _container = null!;
 
         private readonly Dictionary<AudioClipAssetRef, CacheEntry> _cache = new();
+        private readonly Dictionary<AudioClipAssetRef, UniTaskCompletionSource<CacheEntry>> _pending = new();
 
         public async UniTask<AudioClip> Load(AudioClipAssetRef assetRef, CancellationToken token)
         {
@@ -21,9 +23,38 @@ namespace DeepForestLabs.Audio
                 return entry.Clip;
             }
 
-            AudioClip clip = await _container.Checkout(assetRef, token);
-            _cache[assetRef] = new CacheEntry { Clip = clip, RefCount = 1 };
-            return clip;
+            if (_pending.TryGetValue(assetRef, out var pending))
+            {
+                entry = await pending.Task.AttachExternalCancellation(token);
+                entry.RefCount++;
+                return entry.Clip;
+            }
+
+            var tcs = new UniTaskCompletionSource<CacheEntry>();
+            _pending[assetRef] = tcs;
+
+            try
+            {
+                AudioClip clip = await _container.Checkout(assetRef, token);
+                entry = new CacheEntry { Clip = clip, RefCount = 1 };
+                _cache[assetRef] = entry;
+                tcs.TrySetResult(entry);
+                return clip;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pending.Remove(assetRef);
+            }
         }
 
         public void Release(AudioClipAssetRef assetRef)
@@ -71,6 +102,7 @@ namespace DeepForestLabs.Audio
         public void ReleaseAll()
         {
             _cache.Clear();
+            _pending.Clear();
         }
 
         private sealed class CacheEntry

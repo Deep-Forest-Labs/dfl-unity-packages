@@ -27,6 +27,14 @@ namespace DeepForestLabs.Assets.Resource
         private readonly Dictionary<string, GameObjectManager> _gameObjectManagers = new();
         private readonly Dictionary<string, Dictionary<Type, UniTaskCompletionSource<object>>> _typedGameObjectManagers = new();
 
+        private readonly Dictionary<string, UniTaskCompletionSource<AudioClipAssetHandle>> _pendingAudioClips = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<MeshAssetHandle>> _pendingMeshes = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<SpriteAssetHandle>> _pendingSprites = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<SpriteAtlasAssetHandle>> _pendingSpriteAtlases = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<Texture2DAssetHandle>> _pendingTextures = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<ScriptableObjectAssetHandle>> _pendingScriptableObjects = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<GameObjectAssetHandle>> _pendingGameObjects = new();
+
         private UniTaskCompletionSource _unloadUnusedResources = new();
         
         public ResourcesManager(Container container, CancellationToken scope)
@@ -89,6 +97,14 @@ namespace DeepForestLabs.Assets.Resource
             _gameObjectManagers.Clear();
             _typedGameObjectManagers.Clear();
             _gameObject.Clear();
+
+            _pendingAudioClips.Clear();
+            _pendingMeshes.Clear();
+            _pendingSprites.Clear();
+            _pendingSpriteAtlases.Clear();
+            _pendingTextures.Clear();
+            _pendingScriptableObjects.Clear();
+            _pendingGameObjects.Clear();
             
             await Resources.UnloadUnusedAssets()
                 .ToUniTask();
@@ -124,20 +140,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.AudioClip;
             }
-            
-            Object? result = await Resources.LoadAsync<AudioClip>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load AudioClip '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is AudioClip, "result is AudioClip");
 
-            AudioClip audioClip = (result as AudioClip)!;
-            handle = new AudioClipAssetHandle(this, resourcePath, audioClip);
-            handle.Push(token);
-            _audioClips.Add(resourcePath, handle);
-            return audioClip;
+            if (_pendingAudioClips.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.AudioClip;
+            }
+
+            var tcs = new UniTaskCompletionSource<AudioClipAssetHandle>();
+            _pendingAudioClips[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<AudioClip>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load AudioClip '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is AudioClip, "result is AudioClip");
+
+                AudioClip audioClip = (result as AudioClip)!;
+                handle = new AudioClipAssetHandle(this, resourcePath, audioClip);
+                handle.Push(token);
+                _audioClips[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return audioClip;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingAudioClips.Remove(resourcePath);
+            }
         }
 
         public async UniTask<Mesh> LoadMesh(string resourcePath, CancellationToken token)
@@ -147,20 +191,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.Mesh;
             }
-            
-            Object? result = await Resources.LoadAsync<Mesh>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load Mesh '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is Mesh, "result is Mesh");
 
-            Mesh mesh = (result as Mesh)!;
-            handle = new MeshAssetHandle(this, resourcePath, mesh);
-            handle.Push(token);
-            _meshes.Add(resourcePath, handle);
-            return mesh;
+            if (_pendingMeshes.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.Mesh;
+            }
+
+            var tcs = new UniTaskCompletionSource<MeshAssetHandle>();
+            _pendingMeshes[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<Mesh>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load Mesh '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is Mesh, "result is Mesh");
+
+                Mesh mesh = (result as Mesh)!;
+                handle = new MeshAssetHandle(this, resourcePath, mesh);
+                handle.Push(token);
+                _meshes[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return mesh;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingMeshes.Remove(resourcePath);
+            }
         }
         
         public async UniTask<Sprite> LoadSprite(string resourcePath, CancellationToken token)
@@ -170,20 +242,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.Sprite;
             }
-            
-            Object? result = await Resources.LoadAsync<Sprite>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load Sprite '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is Sprite, "result is Sprite");
 
-            Sprite sprite = (result as Sprite)!;
-            handle = new SpriteAssetHandle(this, resourcePath, sprite);
-            handle.Push(token);
-            _sprites.Add(resourcePath, handle);
-            return sprite;
+            if (_pendingSprites.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.Sprite;
+            }
+
+            var tcs = new UniTaskCompletionSource<SpriteAssetHandle>();
+            _pendingSprites[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<Sprite>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load Sprite '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is Sprite, "result is Sprite");
+
+                Sprite sprite = (result as Sprite)!;
+                handle = new SpriteAssetHandle(this, resourcePath, sprite);
+                handle.Push(token);
+                _sprites[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return sprite;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingSprites.Remove(resourcePath);
+            }
         }
         
         public async UniTask<Sprite> LoadAtlasedSprite(string resourcePath, string spriteName, CancellationToken token)
@@ -205,21 +305,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.SpriteAtlas;
             }
-            
-            Object? result = await Resources.LoadAsync<SpriteAtlas>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
+
+            if (_pendingSpriteAtlases.TryGetValue(resourcePath, out var pending))
             {
-                throw GameException.FromFormat("Failed to load SpriteAtlas '{0}' from resources.", resourcePath);
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.SpriteAtlas;
             }
-            Log.Assert(result is SpriteAtlas, "result is Sprite");
 
-            SpriteAtlas spriteAtlas = (result as SpriteAtlas)!;
+            var tcs = new UniTaskCompletionSource<SpriteAtlasAssetHandle>();
+            _pendingSpriteAtlases[resourcePath] = tcs;
 
-            handle = new SpriteAtlasAssetHandle(this, resourcePath, spriteAtlas);
-            handle.Push(token);
-            _spriteAtlases.Add(resourcePath, handle);
-            return spriteAtlas;
+            try
+            {
+                Object? result = await Resources.LoadAsync<SpriteAtlas>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load SpriteAtlas '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is SpriteAtlas, "result is Sprite");
+
+                SpriteAtlas spriteAtlas = (result as SpriteAtlas)!;
+                handle = new SpriteAtlasAssetHandle(this, resourcePath, spriteAtlas);
+                handle.Push(token);
+                _spriteAtlases[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return spriteAtlas;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingSpriteAtlases.Remove(resourcePath);
+            }
         }
         
         public async UniTask<Texture2D> LoadTexture2D(string resourcePath, CancellationToken token)
@@ -229,20 +356,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.Texture;
             }
-            
-            Object? result = await Resources.LoadAsync<Texture2D>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load Texture2D '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is Texture2D, "result is Texture2D");
 
-            Texture2D texture2D = (result as Texture2D)!;
-            handle = new Texture2DAssetHandle(this, resourcePath, texture2D);
-            handle.Push(token);
-            _textures.Add(resourcePath, handle);
-            return texture2D;
+            if (_pendingTextures.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.Texture;
+            }
+
+            var tcs = new UniTaskCompletionSource<Texture2DAssetHandle>();
+            _pendingTextures[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<Texture2D>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load Texture2D '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is Texture2D, "result is Texture2D");
+
+                Texture2D texture2D = (result as Texture2D)!;
+                handle = new Texture2DAssetHandle(this, resourcePath, texture2D);
+                handle.Push(token);
+                _textures[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return texture2D;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingTextures.Remove(resourcePath);
+            }
         }
 
         public async UniTask<ScriptableObject> LoadScriptableObject(string resourcePath, CancellationToken token)
@@ -252,20 +407,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.ScriptableObject;
             }
-            
-            Object? result = await Resources.LoadAsync<ScriptableObject>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load ScriptableObject '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is ScriptableObject, "result is ScriptableObject");
 
-            ScriptableObject scriptableObject = (result as ScriptableObject)!;
-            handle = new ScriptableObjectAssetHandle(this, resourcePath, scriptableObject);
-            handle.Push(token);
-            _scriptableObjects.Add(resourcePath, handle);
-            return scriptableObject;
+            if (_pendingScriptableObjects.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.ScriptableObject;
+            }
+
+            var tcs = new UniTaskCompletionSource<ScriptableObjectAssetHandle>();
+            _pendingScriptableObjects[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<ScriptableObject>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load ScriptableObject '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is ScriptableObject, "result is ScriptableObject");
+
+                ScriptableObject scriptableObject = (result as ScriptableObject)!;
+                handle = new ScriptableObjectAssetHandle(this, resourcePath, scriptableObject);
+                handle.Push(token);
+                _scriptableObjects[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return scriptableObject;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingScriptableObjects.Remove(resourcePath);
+            }
         }
         
         public async UniTask<GameObject> LoadGameObject(string resourcePath, CancellationToken token)
@@ -275,20 +458,48 @@ namespace DeepForestLabs.Assets.Resource
                 handle.Push(token);
                 return handle.Prefab;
             }
-            
-            Object? result = await Resources.LoadAsync<GameObject>(resourcePath)
-                .ToUniTask(cancellationToken: token);
-            if (result == null)
-            {
-                throw GameException.FromFormat("Failed to load GameObject '{0}' from resources.", resourcePath);
-            }
-            Log.Assert(result is GameObject, "result is GameObject");
 
-            GameObject prefab = (result as GameObject)!;
-            handle = new GameObjectAssetHandle(this, resourcePath, prefab);
-            handle.Push(token);
-            _gameObject.Add(resourcePath, handle);
-            return prefab;
+            if (_pendingGameObjects.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.Prefab;
+            }
+
+            var tcs = new UniTaskCompletionSource<GameObjectAssetHandle>();
+            _pendingGameObjects[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<GameObject>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load GameObject '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is GameObject, "result is GameObject");
+
+                GameObject prefab = (result as GameObject)!;
+                handle = new GameObjectAssetHandle(this, resourcePath, prefab);
+                handle.Push(token);
+                _gameObject[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return prefab;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingGameObjects.Remove(resourcePath);
+            }
         }
         
         public async UniTask<GameObjectManager> LoadGameObjectManager(GameObjectAssetRef assetRef,
