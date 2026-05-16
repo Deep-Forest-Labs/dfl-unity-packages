@@ -1,3 +1,9 @@
+---
+description: Editor menu path conventions, factory menu items, prohibited patterns
+globs: "**/Editor/**/*.cs"
+alwaysApply: false
+---
+
 # DFL Editor Menu Organization
 
 All DFL custom Unity Editor menu items follow a standard path convention. Every new menu item must use these prefixes.

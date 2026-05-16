@@ -35,6 +35,8 @@ public sealed class SessionState : IRunnable
 }
 ```
 
+States orchestrate across features (`Enable`, `Tick`, modal `await`). Controllers execute within their own feature domain.
+
 ## Container Hierarchy
 
 Game projects build a chain of nested container scopes. Each scope has a `ContainerBuilderFactory` ScriptableObject:
@@ -81,19 +83,48 @@ public record HudModel : Model<HudModelId>
 }
 ```
 
-**View** -- MonoBehaviour implementing `IView`. Pure display, setter methods only. No business logic.
+**View** -- `ValidatedBehaviour` implementing `IView`. Pure display, setter methods only. No business logic. Validate `[SerializeField]` references in `OnValidate()`, never at runtime.
 
 ```csharp
-public class HudView : MonoBehaviour, IView
+public class HudView : ValidatedBehaviour, IView
 {
     [SerializeField] private TMP_Text loadedAmmoText = default!;
 
     public void SetAmmo(int loaded, int reserve) { /* update UI */ }
 
+#if UNITY_EDITOR
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        Log.Validate(this, loadedAmmoText != null, "{0} is missing required field {1}", name, nameof(loadedAmmoText));
+    }
+#endif
+
     public UniTask OpenAnimation(CancellationToken token) => UniTask.CompletedTask;
     public void OpenAnimationFinished() { }
     public UniTask CloseAnimation(CancellationToken token) => UniTask.CompletedTask;
     public void CloseAnimationFinished() { }
+}
+```
+
+### View Validation
+
+Views extend `ValidatedBehaviour` (from the framework) instead of raw `MonoBehaviour`. All `[SerializeField]` references are validated in `OnValidate()` using `Log.Validate` -- never at runtime in `Awake()` or any other callback. `Log.Validate` is `[Conditional("UNITY_EDITOR")]` and fires `[Asset Validation Failure]` messages without crashing.
+
+```csharp
+// GOOD -- editor-time validation, no runtime cost, no crashes from pool/lifecycle edge cases
+#if UNITY_EDITOR
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        Log.Validate(this, _field != null, "{0} is missing required field {1}", name, nameof(_field));
+    }
+#endif
+
+// BAD -- runtime assertion that crashes on instantiation, breaks pool lifecycle
+private void Awake()
+{
+    Log.Assert(_field != null, "_field != null");
 }
 ```
 
@@ -251,6 +282,31 @@ public sealed class PauseService : IPauseService, IDisposable
 | Read-only observable state on a service interface | `IReadOnlyAsyncReactiveProperty<T>` |
 | One-shot fire-and-forget notification with no state | C# `event` is acceptable |
 
+### State Snapshot Types
+
+Reactive state snapshots **must** be `readonly record struct`. MVC Models **must** be `record` (reference type).
+
+```csharp
+// Reactive state snapshot -- value type, stack-allocated, no GC, no serialization
+public readonly record struct PlayerRuntimeState(Vector3 Position, Quaternion Rotation, bool IsGrounded);
+
+// MVC Model -- reference type, serializable, has enum ID, drives controller pipeline
+[Serializable]
+public record PlayerModel : Model<PlayerModelId>
+{
+    [SerializeField] private float _moveSpeed = 5f;
+    public float MoveSpeed => _moveSpeed;
+}
+```
+
+Register reactive state and expose a read-only alias:
+
+```csharp
+builder.AddScoped(_ => new AsyncReactiveProperty<PlayerRuntimeState>(default));
+builder.AddAlias<IReadOnlyAsyncReactiveProperty<PlayerRuntimeState>,
+                 AsyncReactiveProperty<PlayerRuntimeState>>();
+```
+
 ## Prohibited: FindAnyObjectByType and Unity Global Accessors
 
 Scene MonoBehaviours and Unity singletons must be resolved through DI, never through Unity's `Find*` methods or global accessors. These bypass the container, produce untracked null references, and prevent the DI system from failing fast on missing dependencies.
@@ -283,6 +339,34 @@ builder.AddChild(_titleScreenFactory);
 
 If a MonoBehaviour exists in a loaded scene, use `AddScene<T>` to register it. If it's a UI feature, use the MVC Factory pattern. The container throws `GameException` or `DiException` if the object is missing -- no silent nulls.
 
+### Acceptable Exceptions
+
+**`UICanvasRoot.Instance`** (static singleton `MonoBehaviour` with `DontDestroyOnLoad`) is the one accepted global accessor. A shared UI canvas must persist across scene loads. Access it through `IUICanvasService` registered in `MainArgs`, never directly from game code.
+
+### Prohibited: GetComponent on Views
+
+`GetComponent` is banned on views -- even for components on the same GameObject. Always use `[SerializeField]` with `OnValidate()` validation. `[RequireComponent]` ensures the component exists on the prefab; `[SerializeField]` makes it explicit and inspector-visible.
+
+```csharp
+// BAD -- lazy GetComponent, implicit coupling, no inspector visibility
+private CharacterController? cc;
+public CharacterController Controller => cc ??= GetComponent<CharacterController>();
+
+// GOOD -- explicit, validated, inspector-visible
+[SerializeField] private CharacterController controller = default!;
+public CharacterController Controller => controller;
+
+#if UNITY_EDITOR
+protected override void OnValidate()
+{
+    base.OnValidate();
+    Log.Validate(this, controller != null, "{0} is missing required field {1}", name, nameof(controller));
+}
+#endif
+```
+
+For physics-driven component lookup (`GetComponentInParent<T>` on a `RaycastHit` collider), prefer an `IHitRegistry` service that maps colliders to hittable targets via `Dictionary<int, IHittable>` keyed by `Collider.GetInstanceID()`. This avoids runtime hierarchy traversal and keeps hit resolution decoupled from the Unity component tree.
+
 ## Services
 
 Define an interface, implement as a class, register via `AddScoped<IService, Impl>()`:
@@ -302,6 +386,61 @@ public sealed class InputService : IInputService, IInitializable, IDisposable
     public void Dispose() { /* unbind */ }
 }
 ```
+
+### Async Work in Services
+
+Services can inject the container's scope `CancellationToken` directly for fire-and-forget async work tied to scope lifetime:
+
+```csharp
+[Dependency] private readonly CancellationToken _token = default!;
+
+public void StartWaves()
+{
+    RunWaves(_token).Forget();
+}
+
+private async UniTaskVoid RunWaves(CancellationToken token)
+{
+    foreach (var wave in _config.Waves)
+    {
+        _enemyService.SpawnSwarm(wave.Swarm, wave.SpawnOrigin);
+        await UniTask.Delay(TimeSpan.FromSeconds(wave.Delay), cancellationToken: token);
+    }
+}
+```
+
+`UniTaskVoid` + `.Forget()` is the correct pattern for fire-and-forget async. The scope token ensures automatic cancellation on dispose. Do NOT use `Task.Run`, `async void`, or untracked `UniTask` references.
+
+## Config ScriptableObjects
+
+Tuning data and system configuration use `[CreateAssetMenu]` ScriptableObjects registered as singletons. These are NOT MVC Models.
+
+| | MVC Model | Config ScriptableObject |
+|--|-----------|------------------------|
+| Type | `record : Model<TId>` | `ScriptableObject` with `[CreateAssetMenu]` |
+| Registration | Automatic via `Factory` | `AddSingleton(config)` in `ContainerBuilderFactory` |
+| Mutability | Immutable at runtime (update via `with`) | Read-only (tuning data set in Inspector) |
+| Consumers | Controller (via `Model` property) | Services, states (via `[Dependency]`) |
+
+```csharp
+[CreateAssetMenu(fileName = "EnemyConfig", menuName = "Slumber/Enemy Config")]
+public sealed class EnemyConfig : ScriptableObject
+{
+    [SerializeField] private int _maxEnemies = 1000;
+    public int MaxEnemies => _maxEnemies;
+}
+
+// In factory:
+builder.AddSingleton(_enemyConfig);
+```
+
+When a service needs a value from config at construction time, use the factory lambda:
+
+```csharp
+builder.AddScoped<IHealthService>(_ => new HealthService(_config.MaxHealth));
+```
+
+This is the **one exception** to "never use `new` for services." The lambda runs during `Build()` and the instance is DI-managed (disposed with the scope).
 
 ## Folder Structure
 
@@ -489,6 +628,23 @@ protected override async UniTask<VoidReturn> Run(PlayerView view, CancellationTo
 
 Parents await flow controllers: `ResultV<TResult> result = await controller.Run(token);`
 Parents fire-and-forget gameplay controllers: `controller.Enable();`
+
+### Additional Controller Features
+
+**ViewParent** -- Override `ViewParent` to parent a controller's view under a specific transform. Common for UI controllers that need their views under a shared canvas:
+
+```csharp
+public sealed class HudController : Controller<HudModel, HudView>
+{
+    [Dependency] private readonly IUICanvasService _canvas = default!;
+
+    protected override Transform? ViewParent => _canvas.CanvasTransform;
+}
+```
+
+**Initialize(TView, CancellationToken)** -- Override for one-time view setup that runs before `Update` and `Run`. Use for wiring that only needs to happen once when the view is first assigned.
+
+**Control() idempotency** -- `Control(controller, token)` is safe to call multiple times. If the controller is already enabled, it returns immediately. This prevents double-enabling in reactive update loops.
 
 ## C# Conventions
 

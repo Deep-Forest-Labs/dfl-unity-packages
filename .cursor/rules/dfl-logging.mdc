@@ -63,22 +63,32 @@ Log.Assert(!string.IsNullOrEmpty(_guid), "!string.IsNullOrEmpty(_guid)");
 
 ## View SerializeField Validation
 
-Views declare `[SerializeField]` fields with `default!`, establishing a non-null contract. Unity's serialization can silently violate this contract (miswired prefab, missing reference). Validate all required SerializeField references early -- never null-guard-and-skip in setters.
+Views declare `[SerializeField]` fields with `default!`, establishing a non-null contract. Unity's serialization can silently violate this contract (miswired prefab, missing reference). Validate all required SerializeField references in `OnValidate()` via `Log.Validate` -- never at runtime in `Awake()`, and never null-guard-and-skip in setters.
+
+Views must extend `ValidatedBehaviour` (from the framework), not raw `MonoBehaviour`. `Log.Validate` is `[Conditional("UNITY_EDITOR")]` and fires `[Asset Validation Failure]` messages without crashing.
 
 ```csharp
+// GOOD -- editor-time validation via ValidatedBehaviour, no runtime cost
+#if UNITY_EDITOR
+protected override void OnValidate()
+{
+    base.OnValidate();
+    Log.Validate(this, loadedAmmoText != null, "{0} is missing required field {1}", name, nameof(loadedAmmoText));
+    Log.Validate(this, reserveAmmoText != null, "{0} is missing required field {1}", name, nameof(reserveAmmoText));
+    Log.Validate(this, crosshairRoot != null, "{0} is missing required field {1}", name, nameof(crosshairRoot));
+}
+#endif
+
+// BAD -- runtime assertion in Awake crashes on instantiation, breaks pool lifecycle
+private void Awake()
+{
+    Log.Assert(loadedAmmoText != null, "loadedAmmoText != null");
+}
+
 // BAD -- silently skips when prefab is miswired; broken HUD with zero errors
 public void SetAmmo(int loaded, int reserve)
 {
     if (loadedAmmoText != null) loadedAmmoText.text = loaded.ToString();
-    if (reserveAmmoText != null) reserveAmmoText.text = reserve.ToString();
-}
-
-// GOOD -- assert in Awake; broken prefab fails immediately in dev builds
-private void Awake()
-{
-    Log.Assert(loadedAmmoText != null, "loadedAmmoText != null");
-    Log.Assert(reserveAmmoText != null, "reserveAmmoText != null");
-    Log.Assert(crosshairRoot != null, "crosshairRoot != null");
 }
 
 // GOOD -- setters trust the contract, no null guards
@@ -88,10 +98,6 @@ public void SetAmmo(int loaded, int reserve)
     reserveAmmoText.text = reserve.ToString();
 }
 ```
-
-`Log.Assert` throws `AssertionException` in non-release builds and compiles out in release. This means:
-- In development: broken prefabs crash immediately with a clear message
-- In release: the `default!` contract holds because the prefab was validated during development
 
 ## Dependency Field Convention
 

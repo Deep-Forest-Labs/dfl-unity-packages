@@ -40,16 +40,35 @@ public sealed class MyState : IRunnable
 var service = new MyService();
 ```
 
+### Optional Dependencies
+
+For services that may or may not be registered, use a nullable type with `= default` (not `= default!`):
+
+```csharp
+// Required dependency (default -- container throws DiException if not registered)
+[Dependency] private readonly IMyService _service = default!;
+
+// Optional dependency (container skips silently if not registered)
+[Dependency] private readonly IMyService? _service = default;
+```
+
+The container won't throw if nothing registers the type. Always null-check before use. Use sparingly -- most dependencies should be required.
+
 ### Registration Methods
 
 | Method | Lifetime | Use for |
 |--------|----------|---------|
 | `AddScoped<T>()` | One per container build | Services, controllers |
 | `AddScoped<IFoo, FooImpl>()` | One per build, interface-keyed | Services with interfaces |
+| `AddScoped<T>(Func<IContainer, T>)` | One per build | Services needing constructor args (see Config ScriptableObjects in game patterns) |
 | `AddSingleton<T>(instance)` | Shared across container + children | Config, factories |
 | `AddTransient<IRunnable, T>()` | Created on demand via `Create<T>` | States (runnables) |
-| `AddAlias<IFoo, Foo>()` | Alias an existing registration | Multiple interfaces for one type |
+| `AddAlias<IFoo, Foo>()` | Alias an existing registration | Multiple interfaces for one type (also used for `IReadOnlyAsyncReactiveProperty<T>` aliases) |
 | `AddFromBuilder(factory)` | Delegates to a `ContainerBuilderFactory` | Composition of scopes |
+| `AddChild(factory)` | Delegates to a `Factory` | Register an MVC Factory (Model + View + Controller as a unit) |
+| `AddScene<T>()` | One per build | Find MonoBehaviour T in the already-loaded scene |
+| `AddScene<T>(sceneRef)` | One per build | Load scene via Addressables, then find T in it |
+| `AddScriptableObject<T>()` | One per build | Load a ScriptableObject from Resources at build time |
 
 ## Container Hierarchy
 
@@ -87,15 +106,63 @@ public sealed class SessionContainerFactory : ContainerBuilderFactory
 
 These are ScriptableObject assets assigned in the Unity Inspector, NOT instantiated in code.
 
+## Swarm / Pool Factories (Resolve and Arrange)
+
+When a feature needs a pool of identical MVC entities (enemies, portals, projectiles), use a swarm factory. This is a `ContainerBuilderFactory` that creates N children from the same MVC `Factory`, then collects their controllers into an array for a coordinating manager service.
+
+The build has two phases:
+
+1. **`AddToBuilder`** -- register config, coordinating service, and N children via `AddChild` in a loop.
+2. **`ArrangeComponents`** -- after all children are built, collect controller arrays from children and promote the coordinator interface to the parent scope.
+
+```csharp
+public sealed class EnemySwarmFactory : ContainerBuilderFactory
+{
+    [SerializeField] private EnemyFactory _enemyFactory = default!;
+    [SerializeField] private int _poolSize = 20;
+    [SerializeField] private EnemyManagerConfig _config = default!;
+
+    public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
+    {
+        builder.AddSingleton(_config);
+        builder.AddScoped<IEnemyManager, EnemyManagerService>();
+        for (int i = 0; i < _poolSize; i++)
+            builder.AddChild(_enemyFactory);
+        return builder;
+    }
+
+    public override void ArrangeComponents(IArrangeContext context)
+    {
+        // Collect controllers from the N children into an array for the manager
+        // Register the array as a singleton so the manager can inject it
+        // Promote the manager interface so the parent scope can inject it
+        context.PromoteFrom<IEnemyManager>();
+    }
+}
+```
+
+The parent factory registers the swarm as a child, and the parent state injects the promoted interface:
+
+```csharp
+// In GameplayContainerFactory:
+builder.AddChild(_enemySwarmFactory);
+
+// In GameplayState:
+[Dependency] private readonly IEnemyManager _enemyManager = default!;
+```
+
 ## Lifecycle Interfaces
 
 | Interface | Purpose | Called by |
 |-----------|---------|-----------|
 | `IRunnable` | Long-lived async task (`Run(CancellationToken)`) | `container.Run<IRunnable>(token)` |
 | `IInitializable` | One-time async setup (`Initialize(CancellationToken)`) | Container during `Build()` |
+| `IMainInitializable` | One-time app-level setup before main loop | `MainState` (before app loop) |
 | `IDisposable` | Cleanup | Container on scope cancellation |
 
 States implement `IRunnable`. Services that need async setup implement `IInitializable`. The container orchestrates all of these automatically -- do not call `Initialize` or `Dispose` manually.
+
+`IMainInitializable` runs once in `MainState` before the main app loop starts. Use for global bootstrap that must complete before any game scope exists (Addressables initialization, analytics setup, crash reporting). It is an optional dependency -- `MainState` checks for null. Register in `MainArgs`. Different from `IInitializable`, which runs per-scope during `Build()`.
 
 ## Error Propagation
 
