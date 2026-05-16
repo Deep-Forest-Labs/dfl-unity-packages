@@ -42,10 +42,12 @@ namespace DeepForestLabs.MVC
         {
             if (HAS_COMPILE_ERRORS || HAS_CREATED_MENU_ITEMS || EditorApplication.isPlayingOrWillChangePlaymode)
             {
+                Debug.Log($"[FactoryCreateMenuItems] CreateMenus SKIPPED — HAS_COMPILE_ERRORS={HAS_COMPILE_ERRORS}, HAS_CREATED_MENU_ITEMS={HAS_CREATED_MENU_ITEMS}, isPlaying={EditorApplication.isPlayingOrWillChangePlaymode}");
                 return;
             }
             HAS_CREATED_MENU_ITEMS = true;
             
+            int factoryCount = 0;
             foreach (Assembly? assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type?[] types;
@@ -69,17 +71,36 @@ namespace DeepForestLabs.MVC
                     if ((!type.IsGenericType && typeof(Factories.ContainerFactory).IsAssignableFrom(type)) ||
                          (!type.IsGenericType && typeof(ContainerBuilderFactory).IsAssignableFrom(type)))
                     {
-                        AddCreateMenuItem(type);
-                        AddEditMenuItem(type);
+                        try
+                        {
+                            Debug.Log($"[FactoryCreateMenuItems] Found factory: {type.FullName}");
+                            AddCreateMenuItem(type);
+                            AddEditMenuItem(type);
+                            factoryCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"[FactoryCreateMenuItems] EXCEPTION registering {type.FullName}: {ex}");
+                        }
                     }
                     else if ((type.IsGenericType && type.GetGenericTypeDefinition() ==  typeof(ContainerBuilderFactory<>)) ||
                         (type.IsGenericType && type.GetGenericTypeDefinition() ==  typeof(ContainerBuilderFactory<,>)))
                     {
-                        AddCreateMenuItem(type);
-                        AddEditMenuItem(type);
+                        try
+                        {
+                            Debug.Log($"[FactoryCreateMenuItems] Found factory: {type.FullName}");
+                            AddCreateMenuItem(type);
+                            AddEditMenuItem(type);
+                            factoryCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"[FactoryCreateMenuItems] EXCEPTION registering {type.FullName}: {ex}");
+                        }
                     }
                 }
             }
+            Debug.Log($"[FactoryCreateMenuItems] CreateMenus COMPLETE — registered {factoryCount} factories");
         }
 
         private static void AddCreateMenuItem(Type type)
