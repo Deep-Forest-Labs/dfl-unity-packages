@@ -18,6 +18,26 @@ namespace DeepForestLabs.DependencyInjection.Assets
     {
         protected override Type ObjectFieldType => typeof(SceneAsset);
         protected override Type ObjectLoadType => typeof(SceneAsset);
+
+        protected override Object? GetAsset(SerializedProperty property, SceneAssetRef? assetRef)
+        {
+            if (assetRef == null) return null;
+
+            if (assetRef.Mode == AssetRefMode.Resources && !string.IsNullOrEmpty(assetRef._resourcesPath))
+            {
+                foreach (EditorBuildSettingsScene buildScene in EditorBuildSettings.scenes)
+                {
+                    if (buildScene.enabled &&
+                        System.IO.Path.GetFileNameWithoutExtension(buildScene.path) == assetRef._resourcesPath)
+                    {
+                        return AssetDatabase.LoadAssetAtPath<SceneAsset>(buildScene.path);
+                    }
+                }
+                return null;
+            }
+
+            return base.GetAsset(property, assetRef);
+        }
     }
 
     [CustomPropertyDrawer(typeof(AudioClipAssetRef))]
@@ -385,7 +405,25 @@ namespace DeepForestLabs.DependencyInjection.Assets
         private static bool TryGetResourcesAddress(Object? obj, out string resourcesPath)
         {
             string path = AssetDatabase.GetAssetPath(obj);
-            if (string.IsNullOrEmpty(path) || !path.Contains("/Resources/"))
+            if (string.IsNullOrEmpty(path))
+            {
+                resourcesPath = string.Empty;
+                return false;
+            }
+
+            if (obj is SceneAsset && path.IndexOf("Addressable", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                foreach (EditorBuildSettingsScene buildScene in EditorBuildSettings.scenes)
+                {
+                    if (buildScene.enabled && buildScene.path == path)
+                    {
+                        resourcesPath = System.IO.Path.GetFileNameWithoutExtension(path);
+                        return true;
+                    }
+                }
+            }
+
+            if (!path.Contains("/Resources/"))
             {
                 resourcesPath = string.Empty;
                 return false;

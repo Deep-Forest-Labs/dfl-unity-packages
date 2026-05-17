@@ -229,14 +229,16 @@ namespace DeepForestLabs
                 return false;
             }
 
-            // Strip any ".unity" extension if it was included
-            string cleanPath = _resourcesPath.EndsWith(".unity", StringComparison.OrdinalIgnoreCase)
-                ? _resourcesPath.Substring(0, _resourcesPath.Length - 6)
-                : _resourcesPath;
+            foreach (EditorBuildSettingsScene buildScene in EditorBuildSettings.scenes)
+            {
+                if (buildScene.enabled &&
+                    System.IO.Path.GetFileNameWithoutExtension(buildScene.path) == _resourcesPath)
+                {
+                    return true;
+                }
+            }
 
-            // Load the scene asset from Resources
-            SceneAsset? sceneAsset = Resources.Load<SceneAsset>(cleanPath);
-            return sceneAsset != null;
+            return false;
         }
 #endif
 
