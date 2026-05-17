@@ -55,7 +55,6 @@ namespace DeepForestLabs.PixelPipeline
         private class ColorQuantizationPass : ScriptableRenderPass
         {
             private readonly Material material;
-            private static readonly MaterialPropertyBlock s_PropertyBlock = new();
 
             public ColorQuantizationPass(Material material)
             {
@@ -66,7 +65,6 @@ namespace DeepForestLabs.PixelPipeline
             private class PassData
             {
                 public Material material;
-                public TextureHandle inputTexture;
             }
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -76,35 +74,19 @@ namespace DeepForestLabs.PixelPipeline
                 var resourceData = frameData.Get<UniversalResourceData>();
                 if (!resourceData.activeColorTexture.IsValid()) return;
 
-                var targetDesc = renderGraph.GetTextureDesc(resourceData.activeColorTexture);
-                targetDesc.name = "ColorQuantization_TempColor";
-                targetDesc.clearBuffer = false;
-                var tempCopy = renderGraph.CreateTexture(targetDesc);
-
-                renderGraph.AddBlitPass(resourceData.activeColorTexture, tempCopy,
-                    Vector2.one, Vector2.zero, passName: "PixelPipeline.ColorQuantization.CopyColor");
-
                 using (var builder = renderGraph.AddRasterRenderPass<PassData>(
                     "PixelPipeline.ColorQuantization", out var data, profilingSampler))
                 {
                     data.material = material;
-                    data.inputTexture = tempCopy;
 
-                    builder.UseTexture(tempCopy, AccessFlags.Read);
-                    builder.SetRenderAttachment(resourceData.activeColorTexture, 0, AccessFlags.Write);
+                    builder.SetRenderAttachment(resourceData.activeColorTexture, 0, AccessFlags.ReadWrite);
 
                     builder.AllowGlobalStateModification(true);
                     builder.AllowPassCulling(false);
 
                     builder.SetRenderFunc(static (PassData d, RasterGraphContext ctx) =>
                     {
-                        s_PropertyBlock.Clear();
-                        s_PropertyBlock.SetTexture(Shader.PropertyToID("_BlitTexture"), d.inputTexture);
-                        s_PropertyBlock.SetVector(Shader.PropertyToID("_BlitScaleBias"),
-                            new Vector4(1f, 1f, 0f, 0f));
-
-                        ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, 0,
-                            MeshTopology.Triangles, 3, 1, s_PropertyBlock);
+                        Blitter.BlitTexture(ctx.cmd, new Vector4(1f, 1f, 0f, 0f), d.material, 0);
                     });
                 }
             }
