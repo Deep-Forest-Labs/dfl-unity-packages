@@ -53,6 +53,24 @@ namespace DeepForestLabs.PixelPipeline
         [SerializeField] private float fadeStart = 25f;
         [SerializeField] private float fadeEnd = 35f;
 
+        [Header("Far Fog (Retro Dither)")]
+        [SerializeField] private bool farFogEnabled = true;
+        [SerializeField] private float farFogStart = 30f;
+        [SerializeField] private float farFogEnd = 50f;
+        [SerializeField] private Color farFogColorLight = new(0.08f, 0.05f, 0.12f);
+        [SerializeField] private Color farFogColorDark = new(0.02f, 0.01f, 0.04f);
+
+        [Header("Far Color Shift")]
+        [SerializeField] private bool farColorShiftEnabled = true;
+        [SerializeField] private float farColorShiftStart = 20f;
+        [SerializeField] private float farColorShiftEnd = 35f;
+        [SerializeField] private Color farColorShiftTint = new(0.6f, 0.6f, 0.8f, 1f);
+        [SerializeField, Range(0f, 1f)] private float farColorShiftDesaturation = 0.7f;
+
+        [Header("Color Quantization")]
+        [SerializeField] private float colorQuantizationLevels;
+        [SerializeField] private bool quantizeViewmodel;
+
         private RenderTexture farRT;
         private RenderTexture nearRT;
         private RenderTexture viewmodelRT;
@@ -63,6 +81,22 @@ namespace DeepForestLabs.PixelPipeline
         private static readonly int ViewmodelRTId = Shader.PropertyToID("_ViewmodelRT");
         private static readonly int FadeStartId = Shader.PropertyToID("_PixelPipelineFadeStart");
         private static readonly int FadeEndId = Shader.PropertyToID("_PixelPipelineFadeEnd");
+
+        private static readonly int FarFogEnabledId = Shader.PropertyToID("_FarFogEnabled");
+        private static readonly int FarFogStartId = Shader.PropertyToID("_FarFogStart");
+        private static readonly int FarFogEndId = Shader.PropertyToID("_FarFogEnd");
+        private static readonly int FarFogColorLightId = Shader.PropertyToID("_FarFogColorLight");
+        private static readonly int FarFogColorDarkId = Shader.PropertyToID("_FarFogColorDark");
+
+        private static readonly int FarColorShiftEnabledId = Shader.PropertyToID("_FarColorShiftEnabled");
+        private static readonly int FarColorShiftStartId = Shader.PropertyToID("_FarColorShiftStart");
+        private static readonly int FarColorShiftEndId = Shader.PropertyToID("_FarColorShiftEnd");
+        private static readonly int FarColorShiftTintId = Shader.PropertyToID("_FarColorShiftTint");
+        private static readonly int FarColorShiftDesaturationId = Shader.PropertyToID("_FarColorShiftDesaturation");
+
+        private static readonly int ColorQuantizationLevelsId = Shader.PropertyToID("_ColorQuantizationLevels");
+        private static readonly int QuantizeViewmodelId = Shader.PropertyToID("_QuantizeViewmodel");
+        private static readonly int PixelScaleId = Shader.PropertyToID("_PixelPipelinePixelScale");
 
         public int PixelScale
         {
@@ -160,6 +194,139 @@ namespace DeepForestLabs.PixelPipeline
             }
         }
 
+        public bool FarFogEnabled
+        {
+            get => farFogEnabled;
+            set
+            {
+                if (farFogEnabled == value) return;
+                farFogEnabled = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public float FarFogStart
+        {
+            get => farFogStart;
+            set
+            {
+                if (Mathf.Approximately(farFogStart, value)) return;
+                farFogStart = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public float FarFogEnd
+        {
+            get => farFogEnd;
+            set
+            {
+                if (Mathf.Approximately(farFogEnd, value)) return;
+                farFogEnd = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public Color FarFogColorLight
+        {
+            get => farFogColorLight;
+            set
+            {
+                if (farFogColorLight == value) return;
+                farFogColorLight = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public Color FarFogColorDark
+        {
+            get => farFogColorDark;
+            set
+            {
+                if (farFogColorDark == value) return;
+                farFogColorDark = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public bool FarColorShiftEnabled
+        {
+            get => farColorShiftEnabled;
+            set
+            {
+                if (farColorShiftEnabled == value) return;
+                farColorShiftEnabled = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public float FarColorShiftStart
+        {
+            get => farColorShiftStart;
+            set
+            {
+                if (Mathf.Approximately(farColorShiftStart, value)) return;
+                farColorShiftStart = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public float FarColorShiftEnd
+        {
+            get => farColorShiftEnd;
+            set
+            {
+                if (Mathf.Approximately(farColorShiftEnd, value)) return;
+                farColorShiftEnd = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public Color FarColorShiftTint
+        {
+            get => farColorShiftTint;
+            set
+            {
+                if (farColorShiftTint == value) return;
+                farColorShiftTint = value;
+                PublishFogGlobals();
+            }
+        }
+
+        public float FarColorShiftDesaturation
+        {
+            get => farColorShiftDesaturation;
+            set
+            {
+                float clamped = Mathf.Clamp01(value);
+                if (Mathf.Approximately(farColorShiftDesaturation, clamped)) return;
+                farColorShiftDesaturation = clamped;
+                PublishFogGlobals();
+            }
+        }
+
+        public float ColorQuantizationLevels
+        {
+            get => colorQuantizationLevels;
+            set
+            {
+                if (Mathf.Approximately(colorQuantizationLevels, value)) return;
+                colorQuantizationLevels = value;
+                PublishQuantizationGlobals();
+            }
+        }
+
+        public bool QuantizeViewmodel
+        {
+            get => quantizeViewmodel;
+            set
+            {
+                if (quantizeViewmodel == value) return;
+                quantizeViewmodel = value;
+                PublishQuantizationGlobals();
+            }
+        }
+
         private void OnEnable()
         {
             SubscribeToWatcher();
@@ -175,6 +342,8 @@ namespace DeepForestLabs.PixelPipeline
         private void OnValidate()
         {
             if (fadeEnd <= fadeStart) fadeEnd = fadeStart + 0.01f;
+            if (farFogEnd <= farFogStart) farFogEnd = farFogStart + 0.01f;
+            if (farColorShiftEnd <= farColorShiftStart) farColorShiftEnd = farColorShiftStart + 0.01f;
             if (simulatedResolution.x < 0) simulatedResolution.x = 0;
             if (simulatedResolution.y < 0) simulatedResolution.y = 0;
 
@@ -212,6 +381,8 @@ namespace DeepForestLabs.PixelPipeline
             ReallocateRenderTextures();
             ApplyFieldOfView();
             PublishFadeGlobals();
+            PublishFogGlobals();
+            PublishQuantizationGlobals();
         }
 
         private void ApplySimulatedResolution()
@@ -321,6 +492,28 @@ namespace DeepForestLabs.PixelPipeline
         {
             Shader.SetGlobalFloat(FadeStartId, fadeStart);
             Shader.SetGlobalFloat(FadeEndId, fadeEnd);
+        }
+
+        private void PublishFogGlobals()
+        {
+            Shader.SetGlobalFloat(FarFogEnabledId, farFogEnabled ? 1f : 0f);
+            Shader.SetGlobalFloat(FarFogStartId, farFogStart);
+            Shader.SetGlobalFloat(FarFogEndId, Mathf.Max(farFogEnd, farFogStart + 0.01f));
+            Shader.SetGlobalColor(FarFogColorLightId, farFogColorLight);
+            Shader.SetGlobalColor(FarFogColorDarkId, farFogColorDark);
+
+            Shader.SetGlobalFloat(FarColorShiftEnabledId, farColorShiftEnabled ? 1f : 0f);
+            Shader.SetGlobalFloat(FarColorShiftStartId, farColorShiftStart);
+            Shader.SetGlobalFloat(FarColorShiftEndId, Mathf.Max(farColorShiftEnd, farColorShiftStart + 0.01f));
+            Shader.SetGlobalColor(FarColorShiftTintId, farColorShiftTint);
+            Shader.SetGlobalFloat(FarColorShiftDesaturationId, farColorShiftDesaturation);
+        }
+
+        private void PublishQuantizationGlobals()
+        {
+            Shader.SetGlobalFloat(ColorQuantizationLevelsId, colorQuantizationLevels);
+            Shader.SetGlobalFloat(QuantizeViewmodelId, quantizeViewmodel ? 1f : 0f);
+            Shader.SetGlobalFloat(PixelScaleId, pixelScale);
         }
 
         public void ApplyKickOffset(float pitchDeg)
