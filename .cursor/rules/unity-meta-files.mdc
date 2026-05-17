@@ -1,0 +1,82 @@
+---
+description: Unity meta file generation -- every new asset file must have an accompanying .meta file
+globs: 
+alwaysApply: true
+---
+
+# Unity Meta Files
+
+Every file in a Unity package or Assets folder **must** have an accompanying `.meta` file. Unity uses these to track assets by GUID. Missing `.meta` files cause "asset will be ignored" errors and break references.
+
+## When to Generate
+
+Whenever you create a new file (`.cs`, `.shader`, `.hlsl`, `.json`, `.asmdef`, `.asset`, etc.) inside a `Packages/` or `Assets/` directory, create the matching `.meta` file in the same commit.
+
+## GUID Generation
+
+Each `.meta` file needs a unique 32-character hex GUID. Generate one with:
+
+```python
+python3 -c "import uuid; print(uuid.uuid4().hex[:32])"
+```
+
+## Meta File Templates by Type
+
+**C# scripts** (`.cs`) -- `MonoImporter`:
+
+```yaml
+fileFormatVersion: 2
+guid: <32-char-hex>
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+```
+
+**Shaders** (`.shader`) -- `ShaderImporter`:
+
+```yaml
+fileFormatVersion: 2
+guid: <32-char-hex>
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+```
+
+**Shader includes** (`.hlsl`, `.cginc`) -- `ShaderIncludeImporter`:
+
+```yaml
+fileFormatVersion: 2
+guid: <32-char-hex>
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+```
+
+**Folders** -- `DefaultImporter`:
+
+```yaml
+fileFormatVersion: 2
+guid: <32-char-hex>
+folderAsset: yes
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+```
+
+## Reference Existing Meta Files
+
+When unsure which importer to use, check an existing `.meta` file for the same file type in the project and match its format.
