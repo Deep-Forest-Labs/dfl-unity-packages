@@ -27,11 +27,13 @@ namespace DeepForestLabs.PixelPipeline
         [Header("Viewmodel Anchors")]
         [SerializeField] private Transform primaryWeaponAnchor;
         [SerializeField] private Transform secondaryWeaponAnchor;
+        [SerializeField] private Transform spellHandAnchor;
 
         public Camera FarCamera => farCamera;
         public Camera CompositeCamera => compositeCamera;
         public Transform PrimaryWeaponAnchor => primaryWeaponAnchor;
         public Transform SecondaryWeaponAnchor => secondaryWeaponAnchor;
+        public Transform SpellHandAnchor => spellHandAnchor;
 
         [Header("Screen Size Source")]
         [SerializeField] private ScreenSizeWatcher screenSizeWatcher;
