@@ -323,6 +323,12 @@ namespace DeepForestLabs.PixelPipeline
             Shader.SetGlobalFloat(FadeEndId, fadeEnd);
         }
 
+        public void ApplyKickOffset(float pitchDeg)
+        {
+            if (viewmodelCamera != null)
+                viewmodelCamera.transform.localRotation = Quaternion.Euler(-pitchDeg, 0f, 0f);
+        }
+
         public UniTask OpenAnimation(CancellationToken token) => UniTask.CompletedTask;
         public void OpenAnimationFinished() { }
         public UniTask CloseAnimation(CancellationToken token) => UniTask.CompletedTask;
