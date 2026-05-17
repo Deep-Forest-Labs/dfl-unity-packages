@@ -23,9 +23,11 @@ namespace DeepForestLabs.PixelPipeline
         [SerializeField] private Camera nearCamera;
         [SerializeField] private Camera compositeCamera;
         [SerializeField] private Camera viewmodelCamera;
+        [SerializeField] private Transform viewmodelAnchor;
 
         public Camera FarCamera => farCamera;
         public Camera CompositeCamera => compositeCamera;
+        public Transform ViewmodelAnchor => viewmodelAnchor;
 
         [Header("Screen Size Source")]
         [SerializeField] private ScreenSizeWatcher screenSizeWatcher;
