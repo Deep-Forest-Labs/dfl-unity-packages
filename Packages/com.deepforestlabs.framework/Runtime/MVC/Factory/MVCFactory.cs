@@ -10,6 +10,11 @@ using MonoBehaviour = UnityEngine.MonoBehaviour;
 
 namespace DeepForestLabs.MVC.Factory
 {
+    public abstract class Factory<TId> : Factories.ContainerFactory
+        where TId : Enum
+    {
+    }
+
     public abstract class Factory<TId, TModel, TView, TController> : Factory<TId, TModel, TView, VoidReturn, TController>
         where TId : Enum
         where TModel : Model<TId>
@@ -34,7 +39,7 @@ namespace DeepForestLabs.MVC.Factory
         }
     }
     
-    	public abstract class Factory<TId, TModel, TView, TResult, TController> : Factories.ContainerFactory
+    	public abstract class Factory<TId, TModel, TView, TResult, TController> : Factory<TId>
     		where TId : Enum
     		where TModel : Model<TId>
     		where TView : MonoBehaviour, IView 
