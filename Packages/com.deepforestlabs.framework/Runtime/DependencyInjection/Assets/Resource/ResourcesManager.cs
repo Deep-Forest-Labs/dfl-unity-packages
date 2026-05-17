@@ -116,7 +116,7 @@ namespace DeepForestLabs.Assets.Resource
 
             if (!scene.isLoaded)
             {
-                await SceneManager.LoadSceneAsync(scene.buildIndex, LoadSceneMode.Additive)
+                await SceneManager.LoadSceneAsync(resourcePath, LoadSceneMode.Additive)
                     .ToUniTask(cancellationToken: token);
                 
                 scene = SceneManager.GetSceneByName(resourcePath);
