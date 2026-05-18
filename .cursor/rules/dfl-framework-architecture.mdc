@@ -106,9 +106,9 @@ public sealed class SessionContainerFactory : ContainerBuilderFactory
 
 These are ScriptableObject assets assigned in the Unity Inspector, NOT instantiated in code.
 
-## Swarm / Pool Factories (Resolve and Arrange)
+## Manager / Pool Factories (Resolve and Arrange)
 
-When a feature needs a pool of identical MVC entities (enemies, portals, projectiles), use a swarm factory. This is a `ContainerBuilderFactory` that creates N children from the same MVC `Factory`, then collects their controllers into an array for a coordinating manager service.
+When a feature needs a pool of identical MVC entities (enemies, portals, projectiles), use a manager factory. This is a `ContainerBuilderFactory` that creates N children from the same MVC `Factory`, then collects their controllers into an array for a coordinating manager service.
 
 The build has two phases:
 
@@ -116,7 +116,7 @@ The build has two phases:
 2. **`ArrangeComponents`** -- after all children are built, collect controller arrays from children and promote the coordinator interface to the parent scope.
 
 ```csharp
-public sealed class EnemySwarmFactory : ContainerBuilderFactory
+public sealed class EnemyManagerFactory : ContainerBuilderFactory
 {
     [SerializeField] private EnemyFactory _enemyFactory = default!;
     [SerializeField] private int _poolSize = 20;
@@ -141,11 +141,11 @@ public sealed class EnemySwarmFactory : ContainerBuilderFactory
 }
 ```
 
-The parent factory registers the swarm as a child, and the parent state injects the promoted interface:
+The parent factory registers the manager as a child, and the parent state injects the promoted interface:
 
 ```csharp
 // In GameplayContainerFactory:
-builder.AddChild(_enemySwarmFactory);
+builder.AddChild(_enemyManagerFactory);
 
 // In GameplayState:
 [Dependency] private readonly IEnemyManager _enemyManager = default!;
