@@ -154,6 +154,21 @@ public sealed class HudController : Controller<HudModel, HudView>
 public sealed class HudFactory : Factory<HudModelId, HudModel, HudView, HudController> { }
 ```
 
+### IController Alias for Pool/Manager Collection
+
+The `Factory` base class registers `IController<TModel>` and `IController<TModel, TResult>` via alias, but does NOT register the non-generic `IController`. If a parent pool/manager factory collects controllers from children via `children[i].Get<IController>()`, each child factory MUST override `AddComponents` to add the alias:
+
+```csharp
+// REQUIRED when a parent factory collects controllers via Get<IController>()
+protected override IContainerBuilder AddComponents(IContainerBuilder builder)
+{
+    return base.AddComponents(builder)
+        .AddAlias<IController, MyController>();
+}
+```
+
+Without this, `Get<IController>()` throws `DiException` at runtime. The container uses exact-type dictionary lookup -- `IController<TModel>` is not resolvable as `IController`.
+
 Wire MVC factories into gameplay via `AddChild`:
 
 ```csharp

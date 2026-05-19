@@ -151,6 +151,8 @@ builder.AddChild(_enemyManagerFactory);
 [Dependency] private readonly IEnemyManager _enemyManager = default!;
 ```
 
+**Important:** When collecting controllers from children via `children[i].Get<IController>()` during `Arrange`, each child MVC factory must have `.AddAlias<IController, TController>()` in its `AddComponents` override. The framework's `Factory` base class only registers `IController<TModel>` -- the non-generic `IController` is not registered automatically. See the "IController Alias for Pool/Manager Collection" section in `dfl-game-project-patterns`.
+
 ## Lifecycle Interfaces
 
 | Interface | Purpose | Called by |
