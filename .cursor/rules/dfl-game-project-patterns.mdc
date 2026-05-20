@@ -497,9 +497,33 @@ The framework's `Controller<TModel, TView, TResult>` provides a reactive pipelin
 
 | Method | Triggered by | Purpose | View access? |
 |--------|-------------|---------|--------------|
+| `Initialize(TView, CT)` | Each view checkout from pool | One-time data population (pre-show) | Yes |
 | `Update(CancellationToken)` | Model change (automatic) | Sync model from external services/state | No |
 | `Update(TView, CancellationToken)` | Model change + view available | Push model state into view setters | Yes |
-| `Run(TView, CancellationToken)` | After open animations | Wait for user input, return result | Yes |
+| `Run(TView, CancellationToken)` | After open animations | Flow control and user input only | Yes |
+
+### View Lifecycle Execution Order
+
+Each time a controller's view is checked out from the pool, the framework executes:
+
+```
+Checkout → Initialize(view) → Update(view) → Open Animation → Run(view) → Close Animation → Release
+```
+
+`Initialize` and `Update` run BEFORE the view is visible. `Run` starts AFTER open animations complete. This ordering guarantees the view is fully populated before the player sees it.
+
+**`Initialize(TView, CancellationToken)`** -- Runs once per view checkout, before `Update` and before open animations. Use for one-time data population with values that are known at checkout time and will not change during the view's lifecycle. This is NOT called once per controller lifetime -- it runs every time the view is checked out from the pool (including re-checkouts of the same pooled view instance).
+
+```csharp
+protected override UniTask Initialize(LeaderboardView view, CancellationToken token)
+{
+    GameSessionResult result = _sessionResult.Value;
+    view.SetHeader(_levelDefinition.DisplayName);
+    view.SetCurrentScore(result.RoundReached, result.TotalEnemiesKilled);
+    view.SetTopScores(_scoreService.GetTopScores(_levelDefinition.LevelId));
+    return base.Initialize(view, token);
+}
+```
 
 **`Update(CancellationToken)`** -- Called every time `Model` changes (via `RunModel` loop). Use this to read external services and update the model with `Model = Model with { ... }`. No view reference -- model-only work.
 
@@ -600,6 +624,98 @@ loadedAmmo--;
 
 Setting `Model` triggers the `RunModel` loop which calls `Update(CT)` then `Update(view, CT)` automatically. Call `Refresh()` to re-trigger without changing the model reference.
 
+This is also how `Run` triggers view updates -- setting `Model` from within the input loop causes `Update(TView)` to re-run, keeping view-binding in its proper layer rather than calling view setters directly from `Run`.
+
+### View Data Flow: Separation of Concerns
+
+Each view-facing method has a specific data-flow role. Do not conflate them:
+
+| Method | Data role | When to use |
+|--------|-----------|-------------|
+| `Initialize(TView)` | One-time setup | Data known at checkout, won't change (headers, labels, static lists) |
+| `Update(TView)` | Model-driven refresh | Data that changes when `Model` changes (reactive binding) |
+| `Run(TView)` | Flow control only | Await input; trigger view updates via `Model = Model with { }` |
+
+When `Run` receives new data (from user input, awaited services, or sub-controller results), do NOT call view setters directly. Instead, update the model -- the framework re-runs `Update(TView)` automatically:
+
+```csharp
+// GOOD -- Run triggers view refresh via Model; Update owns view binding
+protected override UniTask Update(ScoreView view, CancellationToken token)
+{
+    view.SetScore(Model.Score);
+    view.SetMultiplier(Model.Multiplier);
+    return UniTask.CompletedTask;
+}
+
+protected override async UniTask<VoidReturn> Run(ScoreView view, CancellationToken token)
+{
+    while (!token.IsCancellationRequested)
+    {
+        var input = await NextInput(view, token);
+        if (input == Input.DoubleDown)
+            Model = Model with { Multiplier = Model.Multiplier * 2 };
+    }
+    return default;
+}
+
+// BAD -- Run calls view setters directly, bypasses reactive pipeline
+protected override async UniTask<VoidReturn> Run(ScoreView view, CancellationToken token)
+{
+    while (!token.IsCancellationRequested)
+    {
+        var input = await NextInput(view, token);
+        if (input == Input.DoubleDown)
+            view.SetMultiplier(Model.Multiplier * 2); // view and model out of sync
+    }
+    return default;
+}
+```
+
+**Full SoC example** -- all three methods cooperating on one controller:
+
+```csharp
+public sealed class ShopController : Controller<ShopModel, ShopView, ShopResult>
+{
+    [Dependency] private readonly IInventoryService _inventory = default!;
+    [Dependency] private readonly ICursorService _cursor = default!;
+
+    protected override UniTask Initialize(ShopView view, CancellationToken token)
+    {
+        view.SetShopName(Model.ShopName);
+        view.SetItemCatalog(Model.Items);
+        return base.Initialize(view, token);
+    }
+
+    protected override UniTask Update(ShopView view, CancellationToken token)
+    {
+        view.SetPlayerGold(_inventory.Gold);
+        view.SetSelectedItem(Model.SelectedIndex);
+        return UniTask.CompletedTask;
+    }
+
+    protected override async UniTask<ShopResult> Run(ShopView view, CancellationToken token)
+    {
+        _cursor.Unlock();
+        while (true)
+        {
+            var input = await NextInput(view, token);
+            switch (input)
+            {
+                case Input.SelectItem:
+                    Model = Model with { SelectedIndex = view.HoveredIndex };
+                    break;
+                case Input.Buy:
+                    _inventory.Purchase(Model.Items[Model.SelectedIndex]);
+                    Model = Model with { };
+                    break;
+                case Input.Close:
+                    return ShopResult.Close;
+            }
+        }
+    }
+}
+```
+
 ### Show/Hide
 
 Do NOT call `view.Show()` / `view.Hide()` manually. The framework manages visibility through:
@@ -634,6 +750,32 @@ protected override async UniTask<VoidReturn> Run(PlayerView view, CancellationTo
 }
 ```
 
+### Synchronous Override Convention
+
+When `Initialize`, `Update(TView)`, or other virtual methods do no async work, do NOT use the `async` keyword. Return `UniTask.CompletedTask` or `base.Method(...)` directly. This avoids allocating an async state machine for work that completes synchronously.
+
+```csharp
+// GOOD -- no await, no async, no state machine allocation
+protected override UniTask Initialize(DialogView view, CancellationToken token)
+{
+    view.SetMessage(Model.Message);
+    return base.Initialize(view, token);
+}
+
+protected override UniTask Update(LobbyView view, CancellationToken token)
+{
+    view.SetPlayerCount(Model.PlayerCount);
+    return UniTask.CompletedTask;
+}
+
+// BAD -- async keyword generates state machine for zero benefit
+protected override async UniTask Initialize(DialogView view, CancellationToken token)
+{
+    view.SetMessage(Model.Message);
+    await base.Initialize(view, token);
+}
+```
+
 ### Controller Result Types
 
 | Pattern | Base class | When to use |
@@ -656,8 +798,6 @@ public sealed class HudController : Controller<HudModel, HudView>
     protected override Transform? ViewParent => _canvas.CanvasTransform;
 }
 ```
-
-**Initialize(TView, CancellationToken)** -- Override for one-time view setup that runs before `Update` and `Run`. Use for wiring that only needs to happen once when the view is first assigned.
 
 **Control() idempotency** -- `Control(controller, token)` is safe to call multiple times. If the controller is already enabled, it returns immediately. This prevents double-enabling in reactive update loops.
 
