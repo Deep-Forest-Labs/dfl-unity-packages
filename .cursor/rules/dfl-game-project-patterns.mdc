@@ -750,6 +750,103 @@ protected override async UniTask<VoidReturn> Run(PlayerView view, CancellationTo
 }
 ```
 
+### Pooled Entity Controllers (Manager-Orchestrated)
+
+Pooled entity controllers (enemies, projectiles, orbs) that live and die within a manager's pool use a different pattern from continuous gameplay controllers. The manager owns the lifecycle; the controller's `Run` **returns on death**.
+
+**Manager side** (fire-and-forget lifecycle per slot):
+
+```csharp
+private async UniTaskVoid RunEntityLifecycle(int slot, CancellationToken token)
+{
+    try
+    {
+        await _controllers[slot].Run(token);
+        if (_alive[slot])
+        {
+            SpawnDrops(slot);
+            _alive[slot] = false;
+            _aliveCount--;
+            PublishState();
+
+            await UniTask.Delay(
+                TimeSpan.FromSeconds(_deathFxConfig.DissolveDuration),
+                cancellationToken: token);
+        }
+    }
+    catch (OperationCanceledException) { }
+    finally
+    {
+        _controllers[slot].Disable();
+    }
+}
+```
+
+Use a linked `CancellationTokenSource` for batch cancellation (`DespawnAll`):
+
+```csharp
+_batchCts ??= CancellationTokenSource.CreateLinkedTokenSource(_token);
+RunEntityLifecycle(slot, _batchCts.Token).Forget();
+```
+
+**Controller side** -- `Run` returns after death + dissolve:
+
+```csharp
+protected override async UniTask<VoidReturn> Run(EnemyView view, CancellationToken token)
+{
+    view.SetVisualActive(true);
+    view.SetColliderEnabled(true);
+    _hitRegistry.Register(_colliders!, view);
+
+    try
+    {
+        await RunCombat(view, token);
+
+        while (!token.IsCancellationRequested && !_fxHandle!.IsDissolveComplete)
+            await _pause.YieldGated(PlayerLoopTiming.LastUpdate, token);
+    }
+    finally
+    {
+        _hitRegistry.Unregister(_colliders!);
+        if (_fxHandle != null)
+        {
+            _hittableFx.Unregister(_fxHandle);
+            _fxHandle = null;
+        }
+    }
+
+    return default;
+}
+```
+
+**Critical rule -- view cleanup placement:**
+
+View-state operations (`SetBeamOff`, `SetColliderEnabled(false)`, `SetVisualActive(false)`) belong at the end of the combat method, in the **normal execution path** -- never in `finally`. On scope cancellation, `OperationCanceledException` naturally skips past them; the framework handles view teardown during Release. Calling view methods in `finally` risks `MissingReferenceException` because Unity may have already destroyed the view hierarchy during scope disposal.
+
+```csharp
+// GOOD -- view cleanup in normal flow; OCE skips it on scope cancel
+private async UniTask RunCombat(EnemyView view, CancellationToken token)
+{
+    while (!token.IsCancellationRequested && !_isDead)
+    {
+        await _pause.YieldGated(PlayerLoopTiming.Update, token);
+        // ... combat logic ...
+    }
+
+    view.SetBeamOff();
+    view.SetColliderEnabled(false);
+}
+
+// BAD -- view cleanup in finally; crashes with MissingReferenceException on scope cancel
+finally
+{
+    view.SetBeamOff();           // view hierarchy may be destroyed
+    view.SetColliderEnabled(false);
+}
+```
+
+The `finally` block is reserved for **service-level teardown** only: `IHitRegistry.Unregister`, `IHittableFxService.Unregister`, and similar pure-C# operations that do not touch Unity objects.
+
 ### Synchronous Override Convention
 
 When `Initialize`, `Update(TView)`, or other virtual methods do no async work, do NOT use the `async` keyword. Return `UniTask.CompletedTask` or `base.Method(...)` directly. This avoids allocating an async state machine for work that completes synchronously.

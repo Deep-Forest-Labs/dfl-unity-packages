@@ -175,14 +175,19 @@ namespace DeepForestLabs
         [System.Diagnostics.Conditional("UNITY_EDITOR")]
         internal static void EditorExit()
         {
-            // One frame delayed needed for AddressablesManager to get it callback to OnEditorPlayModeStateChanged 
             UniTask.NextFrame(PlayerLoopTiming.Initialization)
-                .ContinueWith(() =>
+                .ContinueWith(async () =>
                 {
                     _runScope?.Cancel();
                     _runScope?.Dispose();
                     _runScope = null;
-                });
+
+                    if (_container != null)
+                    {
+                        await _container.DisposeAsync();
+                        _container = null;
+                    }
+                }).Forget();
         }
     }
 }
