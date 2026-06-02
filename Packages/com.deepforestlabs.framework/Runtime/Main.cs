@@ -181,7 +181,7 @@ namespace DeepForestLabs
                     _runScope?.Cancel();
                     _runScope?.Dispose();
                     _runScope = null;
-                })
+                });
         }
     }
 }
