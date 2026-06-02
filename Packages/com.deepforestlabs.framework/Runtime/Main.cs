@@ -181,13 +181,7 @@ namespace DeepForestLabs
                     _runScope?.Cancel();
                     _runScope?.Dispose();
                     _runScope = null;
-
-                    if (_container != null)
-                    {
-                        await _container.DisposeAsync();
-                        _container = null;
-                    }
-                }).Forget();
+                })
         }
     }
 }
