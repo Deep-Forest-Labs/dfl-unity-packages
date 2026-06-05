@@ -35,6 +35,7 @@ namespace DeepForestLabs.MVC
 
         private static void OnCompilationFinished(string outputPath, CompilerMessage[] messages)
         {
+            HAS_CREATED_MENU_ITEMS = false;
             HAS_COMPILE_ERRORS |= messages.AsValueEnumerable().Count(m => m.type == CompilerMessageType.Error) != 0;
         }
 
