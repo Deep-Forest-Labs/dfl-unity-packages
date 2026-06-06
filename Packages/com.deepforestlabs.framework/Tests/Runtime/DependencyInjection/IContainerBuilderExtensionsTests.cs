@@ -41,8 +41,8 @@ namespace DeepForestLabs.DependencyInjection
             builder.AddGameObjectManager(prefab, GameObjectManagerOptions.OnDemand);
 
             IReadOnlyCollection<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
-            Assert.Contains(typeof(IGameObjectManagerT<MockView>), registeredTypes);
-            Assert.IsFalse(registeredTypes.Contains(typeof(IGameObjectManager)));
+            Assert.That(registeredTypes, Does.Contain(typeof(IGameObjectManagerT<MockView>)));
+            Assert.That(registeredTypes, Does.Not.Contain(typeof(IGameObjectManager)));
         }
 
         [Test]
@@ -55,8 +55,8 @@ namespace DeepForestLabs.DependencyInjection
             builder.AddGameObjectManager(prefab, GameObjectManagerOptions.OnDemand);
 
             IReadOnlyCollection<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
-            Assert.Contains(typeof(IGameObjectManager), registeredTypes);
-            Assert.IsFalse(registeredTypes.Contains(typeof(IGameObjectManagerT<MockView>)));
+            Assert.That(registeredTypes, Does.Contain(typeof(IGameObjectManager)));
+            Assert.That(registeredTypes, Does.Not.Contain(typeof(IGameObjectManagerT<MockView>)));
         }
 
         private static IReadOnlyCollection<Type> GetAsyncSingletonResolverTypes(ContainerBuilder builder)
