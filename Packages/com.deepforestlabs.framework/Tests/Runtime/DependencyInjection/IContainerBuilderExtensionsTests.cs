@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
@@ -40,9 +41,9 @@ namespace DeepForestLabs.DependencyInjection
 
             builder.AddGameObjectManager(prefab, GameObjectManagerOptions.OnDemand);
 
-            IReadOnlyCollection<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
-            Assert.That(registeredTypes, Does.Contain(typeof(IGameObjectManagerT<MockView>)));
-            Assert.That(registeredTypes, Does.Not.Contain(typeof(IGameObjectManager)));
+            List<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
+            Assert.IsTrue(registeredTypes.Contains(typeof(IGameObjectManagerT<MockView>)));
+            Assert.IsFalse(registeredTypes.Contains(typeof(IGameObjectManager)));
         }
 
         [Test]
@@ -54,19 +55,19 @@ namespace DeepForestLabs.DependencyInjection
 
             builder.AddGameObjectManager(prefab, GameObjectManagerOptions.OnDemand);
 
-            IReadOnlyCollection<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
-            Assert.That(registeredTypes, Does.Contain(typeof(IGameObjectManager)));
-            Assert.That(registeredTypes, Does.Not.Contain(typeof(IGameObjectManagerT<MockView>)));
+            List<Type> registeredTypes = GetAsyncSingletonResolverTypes((ContainerBuilder)builder);
+            Assert.IsTrue(registeredTypes.Contains(typeof(IGameObjectManager)));
+            Assert.IsFalse(registeredTypes.Contains(typeof(IGameObjectManagerT<MockView>)));
         }
 
-        private static IReadOnlyCollection<Type> GetAsyncSingletonResolverTypes(ContainerBuilder builder)
+        private static List<Type> GetAsyncSingletonResolverTypes(ContainerBuilder builder)
         {
             FieldInfo? field = typeof(ContainerBuilder).GetField("_asyncSingletonResolvers",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.NotNull(field);
             var resolvers = (Dictionary<Type, object>?)field.GetValue(builder);
             Assert.NotNull(resolvers);
-            return resolvers.Keys;
+            return resolvers.Keys.ToList();
         }
     }
 }
