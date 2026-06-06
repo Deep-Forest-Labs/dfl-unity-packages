@@ -64,7 +64,7 @@ namespace DeepForestLabs.MVC.Factory
                     .AddSingleton(_view)
                     .AddSingleton(_control)
                     .AddScoped(_ => new AsyncReactiveProperty<AnalyticsStringValues>(_analytics))
-                    .AddGameObjectManager(_view.Prefab, _view.Options)
+                    .AddGameObjectManager<TView>(_view.Prefab, _view.Options)
                     .AddScoped<TController>()
                     .AddAlias<IController<TModel, TResult>, TController>();
 

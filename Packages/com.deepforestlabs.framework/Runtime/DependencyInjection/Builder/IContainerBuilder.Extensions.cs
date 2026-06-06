@@ -84,9 +84,17 @@ namespace DeepForestLabs
             ScriptableObjectAssetRefT<T> assetRef) where T : ScriptableObject
             => Concrete(builder).AddScriptableObject(assetRef);
 
+        public static IContainerBuilder AddGameObjectManager(this IContainerBuilder builder,
+            GameObjectAssetRef assetRef, GameObjectManagerOptions option)
+            => Concrete(builder).AddGameObjectManager(assetRef, option);
+
         public static IContainerBuilder AddGameObjectManager<T>(this IContainerBuilder builder,
             GameObjectAssetRefT<T> assetRef, GameObjectManagerOptions option) where T : Component
             => Concrete(builder).AddGameObjectManager(assetRef, option);
+
+        public static IContainerBuilder AddScopedGameObject(this IContainerBuilder builder,
+            GameObjectAssetRef assetRef, Transform? parent, bool worldPositionStays = true)
+            => Concrete(builder).AddScopedGameObject(assetRef, parent, worldPositionStays);
 
         public static IContainerBuilder AddScopedGameObject<T>(this IContainerBuilder builder,
             GameObjectAssetRefT<T> assetRef, Transform? parent, bool worldPositionStays = true) where T : Component

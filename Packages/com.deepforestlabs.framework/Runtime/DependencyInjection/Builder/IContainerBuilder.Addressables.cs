@@ -20,8 +20,6 @@ namespace DeepForestLabs
         IContainerBuilder AddAtlasedSprite(AtlasedSpriteAssetRef assetRef);
         IContainerBuilder AddSpriteAtlas(SpriteAtlasAssetRef assetRef);
         IContainerBuilder AddTextures2D(Texture2DAssetRef assetRef);
-        IContainerBuilder AddGameObjectManager(GameObjectAssetRef assetRef, GameObjectManagerOptions option);
-        IContainerBuilder AddScopedGameObject(GameObjectAssetRef assetRef, Transform? parent, bool worldPositionStays = true);
     }
 }
 #nullable disable
