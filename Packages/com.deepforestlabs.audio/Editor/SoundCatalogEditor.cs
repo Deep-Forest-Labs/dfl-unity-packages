@@ -14,6 +14,9 @@ namespace DeepForestLabs.Audio.Editor
         private readonly HashSet<int> _expandedRows = new();
         private static AudioSource? _previewSource;
 
+        private static readonly Color SeparatorColor = new(0.15f, 0.15f, 0.15f, 0.6f);
+        private static readonly Color CardBgColor = new(0f, 0f, 0f, 0.08f);
+
         private void OnEnable()
         {
             _entries = serializedObject.FindProperty("_entries");
@@ -51,6 +54,13 @@ namespace DeepForestLabs.Audio.Editor
                 newEntry.FindPropertyRelative("_maxInstances").intValue = 0;
                 newEntry.FindPropertyRelative("_poolPrewarm").intValue = 0;
                 newEntry.FindPropertyRelative("_preload").boolValue = false;
+                newEntry.FindPropertyRelative("_stealPolicy").enumValueIndex = 0;
+                newEntry.FindPropertyRelative("_stealFadeDuration").floatValue = 0.08f;
+                newEntry.FindPropertyRelative("_cooldown").floatValue = 0f;
+                newEntry.FindPropertyRelative("_spatialBlend").floatValue = 0f;
+                newEntry.FindPropertyRelative("_minDistance").floatValue = 1f;
+                newEntry.FindPropertyRelative("_maxDistance").floatValue = 40f;
+                newEntry.FindPropertyRelative("_spatialize").boolValue = false;
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -74,7 +84,6 @@ namespace DeepForestLabs.Audio.Editor
                     duplicates.Add(key);
 
                 SerializedProperty clip = entry.FindPropertyRelative("_clip");
-                SerializedProperty mode = clip.FindPropertyRelative("_mode");
                 SerializedProperty guid = clip.FindPropertyRelative("_guid");
                 SerializedProperty resPath = clip.FindPropertyRelative("_resourcesPath");
                 if (string.IsNullOrEmpty(guid?.stringValue) && string.IsNullOrEmpty(resPath?.stringValue))
@@ -153,8 +162,13 @@ namespace DeepForestLabs.Audio.Editor
                 {
                     int i = indices[idx];
                     DrawEntryRow(i);
+
+                    if (idx < indices.Count - 1 && !_expandedRows.Contains(i))
+                        DrawSeparator();
                 }
                 EditorGUI.indentLevel--;
+
+                EditorGUILayout.Space(4);
             }
         }
 
@@ -164,36 +178,49 @@ namespace DeepForestLabs.Audio.Editor
             SerializedProperty keyProp = entry.FindPropertyRelative("_key");
             SerializedProperty clipProp = entry.FindPropertyRelative("_clip");
 
+            bool isExpanded = _expandedRows.Contains(index);
+
+            if (isExpanded)
+            {
+                EditorGUILayout.Space(2);
+                Rect cardRect = EditorGUILayout.BeginVertical();
+                EditorGUI.DrawRect(cardRect, CardBgColor);
+                EditorGUILayout.Space(2);
+            }
+
             EditorGUILayout.BeginHorizontal();
 
             EditorGUILayout.PropertyField(keyProp, GUIContent.none, GUILayout.Width(120));
             EditorGUILayout.PropertyField(clipProp, new GUIContent(), GUILayout.MinWidth(80));
 
-            bool isExpanded = _expandedRows.Contains(index);
-            if (GUILayout.Button(isExpanded ? "▼" : "►", GUILayout.Width(24)))
+            if (GUILayout.Button(isExpanded ? "\u25BC" : "\u25BA", GUILayout.Width(24)))
             {
                 if (isExpanded) _expandedRows.Remove(index);
                 else _expandedRows.Add(index);
             }
 
-            if (GUILayout.Button("▶", GUILayout.Width(24)))
+            if (GUILayout.Button("\u25B6", GUILayout.Width(24)))
             {
                 TestPlayEntry(entry);
             }
 
-            bool deleted = GUILayout.Button("×", GUILayout.Width(20));
+            bool deleted = GUILayout.Button("\u00D7", GUILayout.Width(20));
 
             EditorGUILayout.EndHorizontal();
 
             if (deleted)
             {
+                if (isExpanded) EditorGUILayout.EndVertical();
                 _entries.DeleteArrayElementAtIndex(index);
                 return;
             }
 
-            if (_expandedRows.Contains(index))
+            if (isExpanded)
             {
+                EditorGUILayout.Space(4);
                 EditorGUI.indentLevel += 2;
+
+                DrawSectionHeader("Playback");
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_defaultVolume"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_defaultPan"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_maxInstances"));
@@ -201,8 +228,39 @@ namespace DeepForestLabs.Audio.Editor
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_poolPrewarm"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_preload"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_ducking"));
+
+                EditorGUILayout.Space(6);
+                DrawSectionHeader("Spatial");
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_spatialBlend"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_minDistance"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_maxDistance"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_spatialize"));
+
+                EditorGUILayout.Space(6);
+                DrawSectionHeader("Voice Management");
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_stealPolicy"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_stealFadeDuration"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("_cooldown"));
+
                 EditorGUI.indentLevel -= 2;
+                EditorGUILayout.Space(4);
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(2);
             }
+        }
+
+        private static void DrawSectionHeader(string label)
+        {
+            EditorGUILayout.LabelField(label, EditorStyles.miniBoldLabel);
+            DrawSeparator();
+        }
+
+        private static void DrawSeparator()
+        {
+            Rect r = EditorGUILayout.GetControlRect(false, 1);
+            r.x += 2;
+            r.width -= 4;
+            EditorGUI.DrawRect(r, SeparatorColor);
         }
 
         private static void TestPlayEntry(SerializedProperty entry)
