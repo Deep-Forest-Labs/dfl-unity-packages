@@ -108,6 +108,21 @@ namespace DeepForestLabs.Audio
             return await PlayBgmInternal(entry.Clip, p, token);
         }
 
+        public async UniTask<ISoundHandle> PlaySfxAt(AudioClipAssetRef clip, Vector3 worldPosition, SoundParams? options = null, CancellationToken token = default)
+        {
+            SoundParams p = ResolveParams(options, SoundGroupId.Sfx, false);
+            p = WithWorldPosition(p, worldPosition);
+            return await PlayInternal(clip, p, token);
+        }
+
+        public async UniTask<ISoundHandle> PlaySfxAt(string key, Vector3 worldPosition, SoundParams? options = null, CancellationToken token = default)
+        {
+            SoundEntry entry = ResolveCatalogEntry(key);
+            SoundParams p = MergeEntryParams(entry, options, false);
+            p = WithWorldPosition(p, worldPosition);
+            return await PlayInternal(entry.Clip, p, token);
+        }
+
         public void StopGroup(SoundGroupId group)
         {
             for (int i = _activeHandles.Count - 1; i >= 0; i--)
@@ -165,7 +180,18 @@ namespace DeepForestLabs.Audio
 
             source.Group = p.Group;
             float startVolume = p.FadeInDuration > 0f ? 0f : p.Volume;
-            source.Configure(clip, group, startVolume, p.Pan, p.Loop);
+            if (p.WorldPosition.HasValue)
+            {
+                float blend = p.SpatialBlend > 0f ? p.SpatialBlend : 1f;
+                float minDist = p.MinDistance > 0f ? p.MinDistance : 1f;
+                float maxDist = p.MaxDistance > 0f ? p.MaxDistance : 40f;
+                source.ConfigureSpatial(clip, group, startVolume, p.Loop, p.WorldPosition.Value,
+                    blend, minDist, maxDist, p.Spatialize);
+            }
+            else
+            {
+                source.Configure(clip, group, startVolume, p.Pan, p.Loop);
+            }
             source.Play();
 
             SoundHandle handle = new SoundHandle(source, p.Group, p.Volume, OnHandleStopped);
@@ -283,7 +309,12 @@ namespace DeepForestLabs.Audio
                     FadeInDuration = o.FadeInDuration,
                     CrossfadeDuration = o.CrossfadeDuration,
                     Ducking = o.Ducking,
-                    MaxInstances = o.MaxInstances
+                    MaxInstances = o.MaxInstances,
+                    WorldPosition = o.WorldPosition,
+                    SpatialBlend = o.SpatialBlend,
+                    MinDistance = o.MinDistance,
+                    MaxDistance = o.MaxDistance,
+                    Spatialize = o.Spatialize
                 };
             }
 
@@ -296,7 +327,12 @@ namespace DeepForestLabs.Audio
                 FadeInDuration = 0f,
                 CrossfadeDuration = 0f,
                 Ducking = null,
-                MaxInstances = 0
+                MaxInstances = 0,
+                WorldPosition = null,
+                SpatialBlend = 0f,
+                MinDistance = 0f,
+                MaxDistance = 0f,
+                Spatialize = false
             };
         }
 
@@ -312,7 +348,32 @@ namespace DeepForestLabs.Audio
                 FadeInDuration = resolved.FadeInDuration,
                 CrossfadeDuration = resolved.CrossfadeDuration,
                 Ducking = resolved.Ducking ?? entry.Ducking,
-                MaxInstances = resolved.MaxInstances > 0 ? resolved.MaxInstances : entry.MaxInstances
+                MaxInstances = resolved.MaxInstances > 0 ? resolved.MaxInstances : entry.MaxInstances,
+                WorldPosition = resolved.WorldPosition,
+                SpatialBlend = resolved.SpatialBlend > 0f ? resolved.SpatialBlend : entry.SpatialBlend,
+                MinDistance = resolved.MinDistance > 0f ? resolved.MinDistance : entry.MinDistance,
+                MaxDistance = resolved.MaxDistance > 0f ? resolved.MaxDistance : entry.MaxDistance,
+                Spatialize = resolved.Spatialize || entry.Spatialize
+            };
+        }
+
+        private static SoundParams WithWorldPosition(SoundParams p, Vector3 position)
+        {
+            return new SoundParams
+            {
+                Group = p.Group,
+                Volume = p.Volume,
+                Pan = p.Pan,
+                Loop = p.Loop,
+                FadeInDuration = p.FadeInDuration,
+                CrossfadeDuration = p.CrossfadeDuration,
+                Ducking = p.Ducking,
+                MaxInstances = p.MaxInstances,
+                WorldPosition = position,
+                SpatialBlend = p.SpatialBlend,
+                MinDistance = p.MinDistance,
+                MaxDistance = p.MaxDistance,
+                Spatialize = p.Spatialize
             };
         }
 

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using UnityEngine;
 
 namespace DeepForestLabs.Audio
 {
@@ -11,6 +12,9 @@ namespace DeepForestLabs.Audio
 
         UniTask<ISoundHandle> PlaySfx(string key, SoundParams? options = null, CancellationToken token = default);
         UniTask<ISoundHandle> PlayBgm(string key, SoundParams? options = null, CancellationToken token = default);
+
+        UniTask<ISoundHandle> PlaySfxAt(AudioClipAssetRef clip, Vector3 worldPosition, SoundParams? options = null, CancellationToken token = default);
+        UniTask<ISoundHandle> PlaySfxAt(string key, Vector3 worldPosition, SoundParams? options = null, CancellationToken token = default);
 
         void StopGroup(SoundGroupId group);
         void StopAll();

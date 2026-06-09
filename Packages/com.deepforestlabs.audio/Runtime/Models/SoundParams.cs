@@ -1,4 +1,6 @@
 #nullable enable
+using UnityEngine;
+
 namespace DeepForestLabs.Audio
 {
     public readonly struct SoundParams
@@ -12,6 +14,12 @@ namespace DeepForestLabs.Audio
         public DuckingProfile? Ducking { get; init; }
         public int MaxInstances { get; init; }
 
+        public Vector3? WorldPosition { get; init; }
+        public float SpatialBlend { get; init; }
+        public float MinDistance { get; init; }
+        public float MaxDistance { get; init; }
+        public bool Spatialize { get; init; }
+
         public static SoundParams Default => new()
         {
             Group = default,
@@ -21,7 +29,12 @@ namespace DeepForestLabs.Audio
             FadeInDuration = 0f,
             CrossfadeDuration = 0f,
             Ducking = null,
-            MaxInstances = 0
+            MaxInstances = 0,
+            WorldPosition = null,
+            SpatialBlend = 0f,
+            MinDistance = 1f,
+            MaxDistance = 40f,
+            Spatialize = false
         };
     }
 }

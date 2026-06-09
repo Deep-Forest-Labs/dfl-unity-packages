@@ -1,4 +1,6 @@
 #nullable enable
+using UnityEngine;
+
 namespace DeepForestLabs.Audio
 {
     internal sealed class NullSoundHandle : ISoundHandle
@@ -18,6 +20,7 @@ namespace DeepForestLabs.Audio
         public void Resume() { }
         public void Stop() { }
         public void FadeOut(float duration) { }
+        public void SetWorldPosition(Vector3 position) { }
     }
 }
 #nullable disable

@@ -79,6 +79,11 @@ namespace DeepForestLabs.Audio
             FadeOutAsync(duration, default).Forget();
         }
 
+        public void SetWorldPosition(Vector3 position)
+        {
+            _source.SetPosition(position);
+        }
+
         internal void MarkStopped()
         {
             State = SoundState.Stopped;
