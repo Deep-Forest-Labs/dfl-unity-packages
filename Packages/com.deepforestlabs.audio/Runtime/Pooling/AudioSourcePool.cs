@@ -30,25 +30,8 @@ namespace DeepForestLabs.Audio
             }
         }
 
-        public PooledAudioSource? Rent(AudioMixerGroup? group, AudioClip clip, int maxInstances)
+        public PooledAudioSource? Rent(AudioMixerGroup? group, AudioClip clip)
         {
-            if (maxInstances > 0)
-            {
-                int currentInstances = CountActiveInstances(clip);
-                if (currentInstances >= maxInstances)
-                {
-                    PooledAudioSource? oldest = FindOldestInstance(clip);
-                    if (oldest != null)
-                    {
-                        Return(oldest);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-            }
-
             PooledAudioSource source;
             if (_available.Count > 0)
             {
@@ -104,7 +87,7 @@ namespace DeepForestLabs.Audio
             return new PooledAudioSource(_root);
         }
 
-        private int CountActiveInstances(AudioClip clip)
+        public int CountActiveInstances(AudioClip clip)
         {
             int count = 0;
             foreach (PooledAudioSource source in _active)
@@ -114,7 +97,11 @@ namespace DeepForestLabs.Audio
             return count;
         }
 
-        private PooledAudioSource? FindOldestInstance(AudioClip clip)
+        /// <summary>
+        /// Returns the oldest active source playing the given clip, or null if none are active.
+        /// The caller (AudioService) decides how to reclaim it so the associated handle stays consistent.
+        /// </summary>
+        public PooledAudioSource? FindStealCandidate(AudioClip clip)
         {
             foreach (PooledAudioSource source in _active)
             {

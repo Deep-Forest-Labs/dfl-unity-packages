@@ -21,6 +21,7 @@ namespace DeepForestLabs.Audio
         private readonly List<SoundHandle> _activeHandles = new();
         private readonly Dictionary<SoundHandle, ActiveSound> _activeSounds = new();
         private readonly Dictionary<SoundGroupId, SoundHandle?> _bgmHandles = new();
+        private readonly Dictionary<string, float> _lastPlayTime = new();
 
         private readonly struct ActiveSound
         {
@@ -98,6 +99,10 @@ namespace DeepForestLabs.Audio
         {
             SoundEntry entry = ResolveCatalogEntry(key);
             SoundParams p = MergeEntryParams(entry, options, false);
+            if (IsOnCooldown(key, p.Cooldown))
+            {
+                return CreateStoppedHandle(p.Group);
+            }
             return await PlayInternal(entry.Clip, p, token);
         }
 
@@ -120,6 +125,10 @@ namespace DeepForestLabs.Audio
             SoundEntry entry = ResolveCatalogEntry(key);
             SoundParams p = MergeEntryParams(entry, options, false);
             p = WithWorldPosition(p, worldPosition);
+            if (IsOnCooldown(key, p.Cooldown))
+            {
+                return CreateStoppedHandle(p.Group);
+            }
             return await PlayInternal(entry.Clip, p, token);
         }
 
@@ -170,10 +179,25 @@ namespace DeepForestLabs.Audio
             AudioClip clip = await _assetCache.Load(clipRef, token);
             AudioMixerGroup? group = _mixerProvider.GetGroup(p.Group);
 
-            PooledAudioSource? source = _pool.Rent(group, clip, p.MaxInstances);
+            if (p.MaxInstances > 0 && _pool.CountActiveInstances(clip) >= p.MaxInstances)
+            {
+                if (p.StealPolicy == StealPolicy.RejectNew)
+                {
+                    _assetCache.Release(clipRef);
+                    return CreateStoppedHandle(p.Group);
+                }
+
+                PooledAudioSource? victim = _pool.FindStealCandidate(clip);
+                if (victim != null)
+                {
+                    StealSource(victim, p.StealPolicy, p.StealFadeDuration);
+                }
+            }
+
+            PooledAudioSource? source = _pool.Rent(group, clip);
             if (source == null)
             {
-                Log.Warning("AudioSourcePool exhausted or max instances reached for clip");
+                Log.Warning("AudioSourcePool exhausted for clip");
                 _assetCache.Release(clipRef);
                 return CreateStoppedHandle(p.Group);
             }
@@ -234,6 +258,40 @@ namespace DeepForestLabs.Audio
             ISoundHandle newHandle = await PlayInternal(clipRef, p, token);
             _bgmHandles[p.Group] = (SoundHandle)newHandle;
             return newHandle;
+        }
+
+        private void StealSource(PooledAudioSource victim, StealPolicy policy, float fadeDuration)
+        {
+            SoundHandle? handle = FindHandleForSource(victim);
+            if (handle == null)
+            {
+                // No tracked handle (e.g. orphaned source) — reclaim directly.
+                _pool.Return(victim);
+                return;
+            }
+
+            if (policy == StealPolicy.SoftSteal && fadeDuration > 0f)
+            {
+                // FadeOut ramps volume to 0, then calls Stop() -> OnHandleStopped, which
+                // returns the source to the pool. The handle's State stays consistent.
+                handle.FadeOut(fadeDuration);
+            }
+            else
+            {
+                handle.Stop();
+            }
+        }
+
+        private SoundHandle? FindHandleForSource(PooledAudioSource source)
+        {
+            foreach (KeyValuePair<SoundHandle, ActiveSound> kvp in _activeSounds)
+            {
+                if (kvp.Value.Source == source)
+                {
+                    return kvp.Key;
+                }
+            }
+            return null;
         }
 
         private void OnHandleStopped(SoundHandle handle)
@@ -314,7 +372,10 @@ namespace DeepForestLabs.Audio
                     SpatialBlend = o.SpatialBlend,
                     MinDistance = o.MinDistance,
                     MaxDistance = o.MaxDistance,
-                    Spatialize = o.Spatialize
+                    Spatialize = o.Spatialize,
+                    StealPolicy = o.StealPolicy,
+                    StealFadeDuration = o.StealFadeDuration,
+                    Cooldown = o.Cooldown
                 };
             }
 
@@ -332,7 +393,10 @@ namespace DeepForestLabs.Audio
                 SpatialBlend = 0f,
                 MinDistance = 0f,
                 MaxDistance = 0f,
-                Spatialize = false
+                Spatialize = false,
+                StealPolicy = StealPolicy.StealOldest,
+                StealFadeDuration = 0f,
+                Cooldown = 0f
             };
         }
 
@@ -353,7 +417,12 @@ namespace DeepForestLabs.Audio
                 SpatialBlend = resolved.SpatialBlend > 0f ? resolved.SpatialBlend : entry.SpatialBlend,
                 MinDistance = resolved.MinDistance > 0f ? resolved.MinDistance : entry.MinDistance,
                 MaxDistance = resolved.MaxDistance > 0f ? resolved.MaxDistance : entry.MaxDistance,
-                Spatialize = resolved.Spatialize || entry.Spatialize
+                Spatialize = resolved.Spatialize || entry.Spatialize,
+                StealPolicy = options.HasValue && options.Value.StealPolicy != StealPolicy.StealOldest
+                    ? resolved.StealPolicy
+                    : entry.StealPolicy,
+                StealFadeDuration = resolved.StealFadeDuration > 0f ? resolved.StealFadeDuration : entry.StealFadeDuration,
+                Cooldown = resolved.Cooldown > 0f ? resolved.Cooldown : entry.Cooldown
             };
         }
 
@@ -373,8 +442,28 @@ namespace DeepForestLabs.Audio
                 SpatialBlend = p.SpatialBlend,
                 MinDistance = p.MinDistance,
                 MaxDistance = p.MaxDistance,
-                Spatialize = p.Spatialize
+                Spatialize = p.Spatialize,
+                StealPolicy = p.StealPolicy,
+                StealFadeDuration = p.StealFadeDuration,
+                Cooldown = p.Cooldown
             };
+        }
+
+        private bool IsOnCooldown(string key, float cooldown)
+        {
+            if (cooldown <= 0f)
+            {
+                return false;
+            }
+
+            float now = Time.unscaledTime;
+            if (_lastPlayTime.TryGetValue(key, out float last) && now - last < cooldown)
+            {
+                return true;
+            }
+
+            _lastPlayTime[key] = now;
+            return false;
         }
 
         private static ISoundHandle CreateStoppedHandle(SoundGroupId group)

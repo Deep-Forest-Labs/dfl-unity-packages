@@ -35,7 +35,7 @@ namespace DeepForestLabs.Audio.Tests
         public void Rent_DecreasesAvailable_IncreasesActive()
         {
             AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
-            PooledAudioSource? source = _pool.Rent(null, clip, 0);
+            PooledAudioSource? source = _pool.Rent(null, clip);
 
             Assert.IsNotNull(source);
             Assert.AreEqual(1, _pool.ActiveCount);
@@ -48,7 +48,7 @@ namespace DeepForestLabs.Audio.Tests
         public void Return_IncreasesAvailable_DecreasesActive()
         {
             AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
-            PooledAudioSource? source = _pool.Rent(null, clip, 0);
+            PooledAudioSource? source = _pool.Rent(null, clip);
             _pool.Return(source!);
 
             Assert.AreEqual(0, _pool.ActiveCount);
@@ -64,7 +64,7 @@ namespace DeepForestLabs.Audio.Tests
 
             for (int i = 0; i < 6; i++)
             {
-                PooledAudioSource? source = _pool.Rent(null, clip, 0);
+                PooledAudioSource? source = _pool.Rent(null, clip);
                 Assert.IsNotNull(source);
             }
 
@@ -81,26 +81,51 @@ namespace DeepForestLabs.Audio.Tests
 
             for (int i = 0; i < 8; i++)
             {
-                _pool.Rent(null, clip, 0);
+                _pool.Rent(null, clip);
             }
 
-            PooledAudioSource? overflow = _pool.Rent(null, clip, 0);
+            PooledAudioSource? overflow = _pool.Rent(null, clip);
             Assert.IsNull(overflow);
 
             Object.DestroyImmediate(clip);
         }
 
         [Test]
-        public void MaxInstances_StealsOldest_WhenLimitReached()
+        public void CountActiveInstances_CountsSourcesPlayingClip()
         {
             AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
 
-            _pool.Rent(null, clip, 0);
-            _pool.Rent(null, clip, 0);
+            PooledAudioSource? a = _pool.Rent(null, clip);
+            PooledAudioSource? b = _pool.Rent(null, clip);
+            a!.Configure(clip, null, 1f, 0f, false);
+            b!.Configure(clip, null, 1f, 0f, false);
 
-            PooledAudioSource? third = _pool.Rent(null, clip, 2);
-            Assert.IsNotNull(third);
-            Assert.AreEqual(2, _pool.ActiveCount);
+            Assert.AreEqual(2, _pool.CountActiveInstances(clip));
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void FindStealCandidate_ReturnsOldestActiveSourceForClip()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+
+            PooledAudioSource? oldest = _pool.Rent(null, clip);
+            oldest!.Configure(clip, null, 1f, 0f, false);
+            PooledAudioSource? newer = _pool.Rent(null, clip);
+            newer!.Configure(clip, null, 1f, 0f, false);
+
+            Assert.AreSame(oldest, _pool.FindStealCandidate(clip));
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void FindStealCandidate_ReturnsNull_WhenClipNotActive()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+
+            Assert.IsNull(_pool.FindStealCandidate(clip));
 
             Object.DestroyImmediate(clip);
         }
@@ -110,9 +135,9 @@ namespace DeepForestLabs.Audio.Tests
         {
             AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
 
-            _pool.Rent(null, clip, 0);
-            _pool.Rent(null, clip, 0);
-            _pool.Rent(null, clip, 0);
+            _pool.Rent(null, clip);
+            _pool.Rent(null, clip);
+            _pool.Rent(null, clip);
 
             _pool.ReturnAll();
 

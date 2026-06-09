@@ -23,6 +23,13 @@ namespace DeepForestLabs.Audio
         [SerializeField] private float _maxDistance = 40f;
         [SerializeField] private bool _spatialize;
 
+        [Header("Voice Management")]
+        [SerializeField] private StealPolicy _stealPolicy = StealPolicy.StealOldest;
+        [Tooltip("Seconds of fade before the oldest instance is reclaimed (SoftSteal only).")]
+        [SerializeField] private float _stealFadeDuration = 0.08f;
+        [Tooltip("Minimum seconds between successive plays of this key. 0 = no cooldown.")]
+        [SerializeField] private float _cooldown;
+
         public string Key => _key;
         public AudioClipAssetRef Clip => _clip;
         public SoundGroupId Group => _group;
@@ -36,6 +43,9 @@ namespace DeepForestLabs.Audio
         public float MinDistance => _minDistance;
         public float MaxDistance => _maxDistance;
         public bool Spatialize => _spatialize;
+        public StealPolicy StealPolicy => _stealPolicy;
+        public float StealFadeDuration => _stealFadeDuration;
+        public float Cooldown => _cooldown;
     }
 }
 #nullable disable

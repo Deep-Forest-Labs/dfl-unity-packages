@@ -20,6 +20,10 @@ namespace DeepForestLabs.Audio
         public float MaxDistance { get; init; }
         public bool Spatialize { get; init; }
 
+        public StealPolicy StealPolicy { get; init; }
+        public float StealFadeDuration { get; init; }
+        public float Cooldown { get; init; }
+
         public static SoundParams Default => new()
         {
             Group = default,
@@ -34,7 +38,10 @@ namespace DeepForestLabs.Audio
             SpatialBlend = 0f,
             MinDistance = 1f,
             MaxDistance = 40f,
-            Spatialize = false
+            Spatialize = false,
+            StealPolicy = StealPolicy.StealOldest,
+            StealFadeDuration = 0.08f,
+            Cooldown = 0f
         };
     }
 }
