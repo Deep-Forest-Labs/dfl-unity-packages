@@ -43,9 +43,17 @@ namespace DeepForestLabs.Audio
             [SerializeField] private AudioMixerGroup _mixerGroup = default!;
             [SerializeField] private string _volumeParam = string.Empty;
 
+            [Header("Voice Budget")]
+            [Tooltip("Maximum concurrent voices for this group. 0 = no limit (pool capacity still applies).")]
+            [SerializeField] private int _maxVoices;
+            [Tooltip("Voices reserved exclusively for this group. Other groups cannot consume these pool slots.")]
+            [SerializeField] private int _reservedVoices;
+
             public string GroupName => _groupName;
             public AudioMixerGroup MixerGroup => _mixerGroup;
             public string VolumeParam => _volumeParam;
+            public int MaxVoices => _maxVoices;
+            public int ReservedVoices => _reservedVoices;
         }
     }
 }

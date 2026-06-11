@@ -160,6 +160,56 @@ namespace DeepForestLabs.Audio.Tests
             _pool.Prewarm(10);
             Assert.AreEqual(8, _pool.TotalCount);
         }
+
+        [Test]
+        public void MaxCapacity_ReturnsConfiguredValue()
+        {
+            Assert.AreEqual(8, _pool.MaxCapacity);
+        }
+
+        [Test]
+        public void CountActiveForGroup_ReturnsZero_WhenEmpty()
+        {
+            Assert.AreEqual(0, _pool.CountActiveForGroup(new SoundGroupId("SFX")));
+        }
+
+        [Test]
+        public void CountActiveForGroup_CountsOnlyMatchingGroup()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            SoundGroupId sfx = new SoundGroupId("SFX");
+            SoundGroupId bgm = new SoundGroupId("BGM");
+
+            PooledAudioSource? a = _pool.Rent(null, clip);
+            a!.Group = sfx;
+            PooledAudioSource? b = _pool.Rent(null, clip);
+            b!.Group = sfx;
+            PooledAudioSource? c = _pool.Rent(null, clip);
+            c!.Group = bgm;
+
+            Assert.AreEqual(2, _pool.CountActiveForGroup(sfx));
+            Assert.AreEqual(1, _pool.CountActiveForGroup(bgm));
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void CountActiveForGroup_DecreasesAfterReturn()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            SoundGroupId sfx = new SoundGroupId("SFX");
+
+            PooledAudioSource? a = _pool.Rent(null, clip);
+            a!.Group = sfx;
+            PooledAudioSource? b = _pool.Rent(null, clip);
+            b!.Group = sfx;
+
+            _pool.Return(a);
+
+            Assert.AreEqual(1, _pool.CountActiveForGroup(sfx));
+
+            Object.DestroyImmediate(clip);
+        }
     }
 }
 #nullable disable

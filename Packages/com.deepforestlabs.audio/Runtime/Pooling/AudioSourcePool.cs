@@ -18,6 +18,7 @@ namespace DeepForestLabs.Audio
         public int ActiveCount => _active.Count;
         public int AvailableCount => _available.Count;
         public int TotalCount => _active.Count + _available.Count;
+        public int MaxCapacity => _maxCapacity;
 
         public AudioSourcePool(Transform root, int initialCapacity = DefaultInitialCapacity, int maxCapacity = DefaultMaxCapacity)
         {
@@ -93,6 +94,16 @@ namespace DeepForestLabs.Audio
             foreach (PooledAudioSource source in _active)
             {
                 if (source.AssignedClip == clip) count++;
+            }
+            return count;
+        }
+
+        public int CountActiveForGroup(SoundGroupId group)
+        {
+            int count = 0;
+            foreach (PooledAudioSource source in _active)
+            {
+                if (source.Group == group) count++;
             }
             return count;
         }

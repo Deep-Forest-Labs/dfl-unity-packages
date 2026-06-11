@@ -38,9 +38,108 @@ namespace DeepForestLabs.Audio.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(_groupMappings, true);
+            DrawGroupMappings();
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawGroupMappings()
+        {
+            _groupMappings.isExpanded = EditorGUILayout.Foldout(_groupMappings.isExpanded,
+                $"Group Mappings ({_groupMappings.arraySize})", true, EditorStyles.foldoutHeader);
+
+            if (!_groupMappings.isExpanded) return;
+
+            EditorGUI.indentLevel++;
+            for (int i = 0; i < _groupMappings.arraySize; i++)
+            {
+                SerializedProperty mapping = _groupMappings.GetArrayElementAtIndex(i);
+                SerializedProperty groupName = mapping.FindPropertyRelative("_groupName");
+
+                string label = string.IsNullOrEmpty(groupName.stringValue)
+                    ? $"Element {i}"
+                    : groupName.stringValue;
+
+                mapping.isExpanded = EditorGUILayout.Foldout(mapping.isExpanded, label, true);
+                if (!mapping.isExpanded) continue;
+
+                EditorGUI.indentLevel++;
+
+                EditorGUILayout.PropertyField(groupName, new GUIContent("Group Name"));
+                EditorGUILayout.PropertyField(mapping.FindPropertyRelative("_mixerGroup"),
+                    new GUIContent("Mixer Group"));
+                EditorGUILayout.PropertyField(mapping.FindPropertyRelative("_volumeParam"),
+                    new GUIContent("Volume Param"));
+
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("Voice Budget", EditorStyles.miniLabel);
+
+                SerializedProperty maxVoices = mapping.FindPropertyRelative("_maxVoices");
+                SerializedProperty reservedVoices = mapping.FindPropertyRelative("_reservedVoices");
+
+                EditorGUILayout.PropertyField(maxVoices, new GUIContent("Max Voices",
+                    "Maximum concurrent voices for this group. 0 = no limit."));
+                EditorGUILayout.PropertyField(reservedVoices, new GUIContent("Reserved Voices",
+                    "Pool slots reserved exclusively for this group."));
+
+                if (maxVoices.intValue < 0) maxVoices.intValue = 0;
+                if (reservedVoices.intValue < 0) reservedVoices.intValue = 0;
+                if (maxVoices.intValue > 0 && reservedVoices.intValue > maxVoices.intValue)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Reserved voices exceeds max voices — reserved will be clamped to max at runtime.",
+                        MessageType.Warning);
+                }
+
+                EditorGUI.indentLevel--;
+                EditorGUILayout.Space(2);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("+", GUILayout.Width(24)))
+            {
+                _groupMappings.InsertArrayElementAtIndex(_groupMappings.arraySize);
+            }
+            using (new EditorGUI.DisabledGroupScope(_groupMappings.arraySize == 0))
+            {
+                if (GUILayout.Button("-", GUILayout.Width(24)) && _groupMappings.arraySize > 0)
+                {
+                    _groupMappings.DeleteArrayElementAtIndex(_groupMappings.arraySize - 1);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            DrawReservationSummary();
+
+            EditorGUI.indentLevel--;
+        }
+
+        private void DrawReservationSummary()
+        {
+            int totalReserved = 0;
+            for (int i = 0; i < _groupMappings.arraySize; i++)
+            {
+                SerializedProperty mapping = _groupMappings.GetArrayElementAtIndex(i);
+                totalReserved += mapping.FindPropertyRelative("_reservedVoices").intValue;
+            }
+
+            if (totalReserved > 0)
+            {
+                EditorGUILayout.Space(4);
+                int poolMax = 64;
+                int unreserved = poolMax - totalReserved;
+                EditorGUILayout.HelpBox(
+                    $"Voice budget: {totalReserved} reserved, {unreserved} unreserved (pool max {poolMax})",
+                    MessageType.Info);
+
+                if (totalReserved >= poolMax)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Total reservations consume the entire pool — unreserved groups will be unable to play.",
+                        MessageType.Error);
+                }
+            }
         }
 
         private void DrawValidation()

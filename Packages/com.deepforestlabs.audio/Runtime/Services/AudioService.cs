@@ -12,6 +12,7 @@ namespace DeepForestLabs.Audio
     {
         [Dependency] private readonly IContainer _container = null!;
         [Dependency] private readonly IAudioMixerProvider _mixerProvider = null!;
+        [Dependency] private readonly AudioMixerConfig _mixerConfig = null!;
         [Dependency] private readonly AudioAssetCache _assetCache = null!;
         [Dependency] private readonly DuckingController _duckingController = null!;
         [Dependency] private readonly SoundCatalog? _catalog = null;
@@ -194,10 +195,15 @@ namespace DeepForestLabs.Audio
                 }
             }
 
+            if (!CanAdmitVoice(p.Group))
+            {
+                _assetCache.Release(clipRef);
+                return CreateStoppedHandle(p.Group);
+            }
+
             PooledAudioSource? source = _pool.Rent(group, clip);
             if (source == null)
             {
-                Log.Warning("AudioSourcePool exhausted for clip");
                 _assetCache.Release(clipRef);
                 return CreateStoppedHandle(p.Group);
             }
@@ -256,7 +262,7 @@ namespace DeepForestLabs.Audio
             }
 
             ISoundHandle newHandle = await PlayInternal(clipRef, p, token);
-            _bgmHandles[p.Group] = (SoundHandle)newHandle;
+            _bgmHandles[p.Group] = newHandle as SoundHandle;
             return newHandle;
         }
 
@@ -343,6 +349,34 @@ namespace DeepForestLabs.Audio
             {
                 source.Source.volume = targetVolume;
             }
+        }
+
+        private bool CanAdmitVoice(SoundGroupId group)
+        {
+            if (_mixerConfig.TryGetMapping(group, out AudioMixerConfig.GroupMapping mapping))
+            {
+                if (mapping.MaxVoices > 0 && _pool.CountActiveForGroup(group) >= mapping.MaxVoices)
+                {
+                    return false;
+                }
+            }
+
+            int totalAvailable = _pool.MaxCapacity - _pool.ActiveCount;
+            if (totalAvailable <= 0) return false;
+
+            int reservedForOthers = 0;
+            foreach (AudioMixerConfig.GroupMapping other in _mixerConfig.GroupMappings)
+            {
+                if (other.ReservedVoices <= 0) continue;
+                SoundGroupId otherGroup = new SoundGroupId(other.GroupName);
+                if (otherGroup == group) continue;
+
+                int activeForOther = _pool.CountActiveForGroup(otherGroup);
+                int unfilled = other.ReservedVoices - activeForOther;
+                if (unfilled > 0) reservedForOthers += unfilled;
+            }
+
+            return totalAvailable > reservedForOthers;
         }
 
         private SoundEntry ResolveCatalogEntry(string key)
