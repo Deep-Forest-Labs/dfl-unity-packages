@@ -65,9 +65,11 @@ namespace DeepForestLabs.DependencyInjection
             FieldInfo? field = typeof(ContainerBuilder).GetField("_asyncSingletonResolvers",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.NotNull(field);
-            var resolvers = (Dictionary<Type, object>?)field.GetValue(builder);
+            // The field is Dictionary<Type, AsyncResolver> where AsyncResolver is an internal alias the
+            // test can't name; read keys via the non-generic IDictionary to avoid an invalid generic cast.
+            var resolvers = (System.Collections.IDictionary?)field!.GetValue(builder);
             Assert.NotNull(resolvers);
-            return resolvers.Keys.ToList();
+            return resolvers!.Keys.Cast<Type>().ToList();
         }
     }
 }
