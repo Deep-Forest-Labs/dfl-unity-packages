@@ -13,8 +13,10 @@ namespace DeepForestLabs
         public CancelOnDisposeTokenSource(CancellationToken token) 
             => _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
         
-        public CancelOnDisposeTokenSource(params CancellationToken[] tokens) 
-            => _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokens);
+        public CancelOnDisposeTokenSource(params CancellationToken[] tokens)
+            => _cancellationTokenSource = tokens is { Length: > 0 }
+                ? CancellationTokenSource.CreateLinkedTokenSource(tokens)
+                : new CancellationTokenSource();
 
         public CancellationToken Token => _cancellationTokenSource.Token;
 
@@ -26,7 +28,7 @@ namespace DeepForestLabs
 
         public static CancelOnDisposeTokenSource CreateLinkedTokenSource(params CancellationToken[] tokens)
         {
-            return new CancelOnDisposeTokenSource(CancellationTokenSource.CreateLinkedTokenSource(tokens));
+            return new CancelOnDisposeTokenSource(tokens);
         }
     }
 }
