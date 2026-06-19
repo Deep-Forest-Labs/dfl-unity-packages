@@ -108,6 +108,20 @@ namespace DeepForestLabs.Assets.Addressables
             }
         }
         
+        private sealed class RuntimeAnimatorControllerAssetHandle : AssetHandle<AssetReferenceT<RuntimeAnimatorController>, RuntimeAnimatorController>
+        {
+            public RuntimeAnimatorControllerAssetHandle(AddressablesManager addressablesManager, 
+                RuntimeAnimatorControllerLoadHandle loadHandle, AsyncOperationHandle<RuntimeAnimatorController> operationHandle) 
+                : base(addressablesManager, loadHandle, operationHandle)
+            {
+            }
+            
+            protected override void Release()
+            {
+                AddressablesManager.ReleaseRuntimeAnimatorController(this);
+            }
+        }
+        
         private sealed class SpriteAssetHandle : AssetHandle<AssetReferenceSprite, Sprite>
         {
             public SpriteAssetHandle(AddressablesManager addressablesManager, 

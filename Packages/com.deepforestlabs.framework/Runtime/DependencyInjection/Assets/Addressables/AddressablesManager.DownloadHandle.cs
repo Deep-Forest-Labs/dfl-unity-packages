@@ -97,6 +97,14 @@ namespace DeepForestLabs.Assets.Addressables
             }
         }
         
+        private sealed class RuntimeAnimatorControllerDownloadHandle : DownloadHandle<AssetReferenceT<RuntimeAnimatorController>>
+        {
+            public RuntimeAnimatorControllerDownloadHandle(string guid, AssetReferenceT<RuntimeAnimatorController> assetReference) 
+                : base(guid, assetReference, typeof(RuntimeAnimatorController), _runtimeAnimatorControllerAssetRefContextProvider?.Invoke(guid))
+            {
+            }
+        }
+        
         private sealed class SpriteDownloadHandle : DownloadHandle<AssetReferenceSprite>
         {
             public SpriteDownloadHandle(string guid, AssetReferenceSprite assetReference) 

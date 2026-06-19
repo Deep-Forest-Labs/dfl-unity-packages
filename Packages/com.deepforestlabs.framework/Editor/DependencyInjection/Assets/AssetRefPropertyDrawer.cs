@@ -54,6 +54,13 @@ namespace DeepForestLabs.DependencyInjection.Assets
         protected override Type ObjectLoadType => typeof(Mesh);
     }
 
+    [CustomPropertyDrawer(typeof(RuntimeAnimatorControllerAssetRef))]
+    public sealed class RuntimeAnimatorControllerAssetRefPropertyDrawer : AssetRefPropertyDrawer<RuntimeAnimatorControllerAssetRef>
+    {
+        protected override Type ObjectFieldType => typeof(RuntimeAnimatorController);
+        protected override Type ObjectLoadType => typeof(RuntimeAnimatorController);
+    }
+
     [CustomPropertyDrawer(typeof(SpriteAssetRef))]
     public sealed class SpriteAssetRefPropertyDrawer : AssetRefPropertyDrawer<SpriteAssetRef>
     {

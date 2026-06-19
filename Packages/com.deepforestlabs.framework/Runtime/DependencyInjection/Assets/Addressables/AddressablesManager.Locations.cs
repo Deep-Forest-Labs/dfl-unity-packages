@@ -36,6 +36,14 @@ namespace DeepForestLabs.Assets.Addressables
             }
         }
         
+        public IEnumerable<IResourceLocation> GetRuntimeAnimatorControllerLocations(string guid)
+        {
+            foreach (IResourceLocation location in GetLocations(GetRuntimeAnimatorControllerAssetReference(guid), typeof(RuntimeAnimatorController)))
+            {
+                yield return location;
+            }
+        }
+        
         public IEnumerable<IResourceLocation> GetSpriteLocations(string guid)
         {
             foreach (IResourceLocation location in GetLocations(GetSpriteAssetReference(guid), typeof(Sprite)))

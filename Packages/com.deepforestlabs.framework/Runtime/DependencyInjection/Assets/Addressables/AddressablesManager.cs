@@ -69,6 +69,15 @@ namespace DeepForestLabs.Assets.Addressables
         private readonly Dictionary<AssetReferenceT<Mesh>, MeshAssetHandle> _meshAssetHandles =
             new(AssetReferenceRuntimeKeyComparer.Instance);
 
+        private readonly Dictionary<AssetReferenceT<RuntimeAnimatorController>, RuntimeAnimatorControllerDownloadHandle> _runtimeAnimatorControllerDownloads =
+            new(AssetReferenceRuntimeKeyComparer.Instance);
+
+        private readonly Dictionary<IResourceLocation, RuntimeAnimatorControllerLoadHandle> _runtimeAnimatorControllerLoadHandles =
+            new(ResourceLocationRuntimeKeyComparer.Instance);
+
+        private readonly Dictionary<AssetReferenceT<RuntimeAnimatorController>, RuntimeAnimatorControllerAssetHandle> _runtimeAnimatorControllerAssetHandles =
+            new(AssetReferenceRuntimeKeyComparer.Instance);
+
         private readonly Dictionary<AssetReferenceSprite, SpriteDownloadHandle> _spriteDownloads =
             new(AssetReferenceRuntimeKeyComparer.Instance);
 
@@ -320,6 +329,7 @@ namespace DeepForestLabs.Assets.Addressables
             _scenesDownloads.Clear();
             _audioClipDownloads.Clear();
             _meshDownloads.Clear();
+            _runtimeAnimatorControllerDownloads.Clear();
             _spriteDownloads.Clear();
             _spriteAtlasDownloads.Clear();
             _texture2DDownloads.Clear();
@@ -351,6 +361,14 @@ namespace DeepForestLabs.Assets.Addressables
 
             _meshAssetHandles.Clear();
             _meshLoadHandles.Clear();
+
+            foreach (RuntimeAnimatorControllerAssetHandle handle in _runtimeAnimatorControllerAssetHandles.Values)
+            {
+                SafeReleaseRuntimeAnimatorController(handle.OperationHandle);
+            }
+
+            _runtimeAnimatorControllerAssetHandles.Clear();
+            _runtimeAnimatorControllerLoadHandles.Clear();
 
             foreach (SpriteAssetHandle handle in _spriteAssetHandles.Values)
             {
@@ -445,6 +463,22 @@ namespace DeepForestLabs.Assets.Addressables
             else
             {
                 assetReference = (uncasted as AssetReferenceT<Mesh>)!;
+            }
+
+            return assetReference;
+        }
+
+        private AssetReferenceT<RuntimeAnimatorController> GetRuntimeAnimatorControllerAssetReference(string address)
+        {
+            AssetReferenceT<RuntimeAnimatorController> assetReference;
+            if (!_assetReferences.TryGetValue(address, out AssetReference? uncasted))
+            {
+                assetReference = new AssetReferenceT<RuntimeAnimatorController>(address);
+                _assetReferences.Add(address, assetReference);
+            }
+            else
+            {
+                assetReference = (uncasted as AssetReferenceT<RuntimeAnimatorController>)!;
             }
 
             return assetReference;
@@ -547,6 +581,7 @@ namespace DeepForestLabs.Assets.Addressables
                 _scenesDownloads.Clear();
                 _audioClipDownloads.Clear();
                 _meshDownloads.Clear();
+                _runtimeAnimatorControllerDownloads.Clear();
                 _spriteDownloads.Clear();
                 _spriteAtlasDownloads.Clear();
                 _texture2DDownloads.Clear();
@@ -558,6 +593,8 @@ namespace DeepForestLabs.Assets.Addressables
                 _audioClipLoadHandles.Clear();
                 _meshAssetHandles.Clear();
                 _meshLoadHandles.Clear();
+                _runtimeAnimatorControllerAssetHandles.Clear();
+                _runtimeAnimatorControllerLoadHandles.Clear();
                 _spriteAssetHandles.Clear();
                 _spriteLoadHandles.Clear();
                 _texture2DAssetHandles.Clear();

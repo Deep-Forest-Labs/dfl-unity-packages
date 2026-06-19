@@ -19,6 +19,7 @@ namespace DeepForestLabs.Assets.Resource
         private readonly Dictionary<string, SceneAssetHandle> _scenes = new();
         private readonly Dictionary<string, AudioClipAssetHandle> _audioClips = new();
         private readonly Dictionary<string, MeshAssetHandle> _meshes = new();
+        private readonly Dictionary<string, RuntimeAnimatorControllerAssetHandle> _runtimeAnimatorControllers = new();
         private readonly Dictionary<string, SpriteAssetHandle> _sprites = new();
         private readonly Dictionary<string, SpriteAtlasAssetHandle> _spriteAtlases = new();
         private readonly Dictionary<string, Texture2DAssetHandle> _textures = new();
@@ -29,6 +30,7 @@ namespace DeepForestLabs.Assets.Resource
 
         private readonly Dictionary<string, UniTaskCompletionSource<AudioClipAssetHandle>> _pendingAudioClips = new();
         private readonly Dictionary<string, UniTaskCompletionSource<MeshAssetHandle>> _pendingMeshes = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<RuntimeAnimatorControllerAssetHandle>> _pendingRuntimeAnimatorControllers = new();
         private readonly Dictionary<string, UniTaskCompletionSource<SpriteAssetHandle>> _pendingSprites = new();
         private readonly Dictionary<string, UniTaskCompletionSource<SpriteAtlasAssetHandle>> _pendingSpriteAtlases = new();
         private readonly Dictionary<string, UniTaskCompletionSource<Texture2DAssetHandle>> _pendingTextures = new();
@@ -66,6 +68,12 @@ namespace DeepForestLabs.Assets.Resource
             }
             _meshes.Clear();
             
+            foreach (RuntimeAnimatorControllerAssetHandle handle in _runtimeAnimatorControllers.Values)
+            {
+                Resources.UnloadAsset(handle.RuntimeAnimatorController);
+            }
+            _runtimeAnimatorControllers.Clear();
+            
             foreach (SpriteAssetHandle handle in _sprites.Values)
             {
                 Resources.UnloadAsset(handle.Sprite);
@@ -100,6 +108,7 @@ namespace DeepForestLabs.Assets.Resource
 
             _pendingAudioClips.Clear();
             _pendingMeshes.Clear();
+            _pendingRuntimeAnimatorControllers.Clear();
             _pendingSprites.Clear();
             _pendingSpriteAtlases.Clear();
             _pendingTextures.Clear();
@@ -232,6 +241,57 @@ namespace DeepForestLabs.Assets.Resource
             finally
             {
                 _pendingMeshes.Remove(resourcePath);
+            }
+        }
+        
+        public async UniTask<RuntimeAnimatorController> LoadRuntimeAnimatorController(string resourcePath, CancellationToken token)
+        {
+            if (_runtimeAnimatorControllers.TryGetValue(resourcePath, out RuntimeAnimatorControllerAssetHandle? handle))
+            {
+                handle.Push(token);
+                return handle.RuntimeAnimatorController;
+            }
+
+            if (_pendingRuntimeAnimatorControllers.TryGetValue(resourcePath, out var pending))
+            {
+                handle = await pending.Task.AttachExternalCancellation(token);
+                handle.Push(token);
+                return handle.RuntimeAnimatorController;
+            }
+
+            var tcs = new UniTaskCompletionSource<RuntimeAnimatorControllerAssetHandle>();
+            _pendingRuntimeAnimatorControllers[resourcePath] = tcs;
+
+            try
+            {
+                Object? result = await Resources.LoadAsync<RuntimeAnimatorController>(resourcePath)
+                    .ToUniTask(cancellationToken: token);
+                if (result == null)
+                {
+                    throw GameException.FromFormat("Failed to load RuntimeAnimatorController '{0}' from resources.", resourcePath);
+                }
+                Log.Assert(result is RuntimeAnimatorController, "result is RuntimeAnimatorController");
+
+                RuntimeAnimatorController controller = (result as RuntimeAnimatorController)!;
+                handle = new RuntimeAnimatorControllerAssetHandle(this, resourcePath, controller);
+                handle.Push(token);
+                _runtimeAnimatorControllers[resourcePath] = handle;
+                tcs.TrySetResult(handle);
+                return controller;
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.TrySetCanceled();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                _pendingRuntimeAnimatorControllers.Remove(resourcePath);
             }
         }
         
@@ -578,6 +638,11 @@ namespace DeepForestLabs.Assets.Resource
             DelayedReleaseMesh(handle).Forget();
         }
         
+        private void ReleaseRuntimeAnimatorController(RuntimeAnimatorControllerAssetHandle handle)
+        {
+            DelayedReleaseRuntimeAnimatorController(handle).Forget();
+        }
+        
         private void ReleaseSprite(SpriteAssetHandle handle)
         {
             DelayedReleaseSprite(handle).Forget();
@@ -670,6 +735,29 @@ namespace DeepForestLabs.Assets.Resource
             }
 
             Resources.UnloadAsset(handle.Mesh);
+            _unloadUnusedResources.TrySetResult();
+        }
+        
+        private async UniTaskVoid DelayedReleaseRuntimeAnimatorController(RuntimeAnimatorControllerAssetHandle handle)
+        {
+            Log.Assert(handle.Count == 0, "handle.Count ({0}) == 0", handle.Count);
+
+            if (!_scope.IsCancellationRequested)
+            {
+                await UniTask.DelayFrame(2, PlayerLoopTiming.EarlyUpdate, _scope);
+                
+                if (handle.Count != 0)
+                {
+                    return;
+                }
+            }
+            
+            if (!_runtimeAnimatorControllers.Remove(handle.ResourcesPath))
+            {
+                return;
+            }
+
+            Resources.UnloadAsset(handle.RuntimeAnimatorController);
             _unloadUnusedResources.TrySetResult();
         }
         

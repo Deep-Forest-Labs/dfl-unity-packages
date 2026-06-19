@@ -107,6 +107,40 @@ namespace DeepForestLabs.Assets.Resource
             }
         }
 
+        private sealed class RuntimeAnimatorControllerAssetHandle
+        {
+            private ResourcesManager Manager { get; }
+            public string ResourcesPath { get; }
+            public RuntimeAnimatorController RuntimeAnimatorController { get; }
+            public int Count { get; private set; }
+
+            public RuntimeAnimatorControllerAssetHandle(ResourcesManager manager, string resourcesPath,
+                RuntimeAnimatorController runtimeAnimatorController)
+            {
+                Manager = manager;
+                ResourcesPath = resourcesPath;
+                RuntimeAnimatorController = runtimeAnimatorController;
+                Count = 0;
+            }
+
+            public void Push(CancellationToken token)
+            {
+                Count++;
+                token.Register(Pop);
+            }
+
+            private void Pop()
+            {
+                Count--;
+                if (Count == 0)
+                {
+                    Manager.ReleaseRuntimeAnimatorController(this);
+                }
+
+                Count = Mathf.Max(0, Count);
+            }
+        }
+
         private sealed class SpriteAssetHandle
         {
             private ResourcesManager Manager { get; }

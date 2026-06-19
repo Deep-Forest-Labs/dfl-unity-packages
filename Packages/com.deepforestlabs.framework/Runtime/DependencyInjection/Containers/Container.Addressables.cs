@@ -32,6 +32,11 @@ namespace DeepForestLabs
             return GetLocations(assetRef).AsValueEnumerable().Any();
         }
         
+        public bool CanLocate(RuntimeAnimatorControllerAssetRef assetRef)
+        {
+            return GetLocations(assetRef).AsValueEnumerable().Any();
+        }
+        
         public bool CanLocate(SpriteAssetRef assetRef)
         {
             return GetLocations(assetRef).AsValueEnumerable().Any();
@@ -116,6 +121,27 @@ namespace DeepForestLabs
                 case AssetRefMode.Addressables:
                     Log.Assert(_addressablesManager != null, nameof(_addressablesManager) + " != null");
                     foreach (IResourceLocation location in _addressablesManager.GetMeshLocations(assetRef._guid))
+                    {
+                        yield return location;
+                    }
+                    yield break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        public IEnumerable<IResourceLocation> GetLocations(RuntimeAnimatorControllerAssetRef assetRef)
+        {
+            Log.Assert(assetRef.IsValid(), "Invalid {0} '{1}'", nameof(RuntimeAnimatorController), assetRef);
+            
+            switch (assetRef._mode)
+            {
+                case AssetRefMode.Resources:
+                    yield return new ResourcesLocation(assetRef._resourcesPath, typeof(RuntimeAnimatorController));
+                    yield break;
+                case AssetRefMode.Addressables:
+                    Log.Assert(_addressablesManager != null, nameof(_addressablesManager) + " != null");
+                    foreach (IResourceLocation location in _addressablesManager.GetRuntimeAnimatorControllerLocations(assetRef._guid))
                     {
                         yield return location;
                     }
@@ -278,6 +304,22 @@ namespace DeepForestLabs
             }
         }
 
+        public UniTask Download(RuntimeAnimatorControllerAssetRef assetRef, CancellationToken token)
+        {
+            Log.Assert(CanLocate(assetRef), "Failed to located {0} '{1}'.", nameof(RuntimeAnimatorController), assetRef);
+            
+            switch (assetRef._mode)
+            {
+                case AssetRefMode.Resources:
+                    return UniTask.CompletedTask;
+                case AssetRefMode.Addressables:
+                    Log.Assert(_addressablesManager != null, nameof(_addressablesManager) + " != null");
+                    return _addressablesManager.DownloadRuntimeAnimatorController(assetRef._guid, token);
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
         public UniTask Download(SpriteAssetRef assetRef, CancellationToken token)
         {
             Log.Assert(CanLocate(assetRef), "Failed to located {0} '{1}'.", nameof(Sprite), assetRef);
@@ -420,6 +462,27 @@ namespace DeepForestLabs
                 default:
                     throw new NotSupportedException();
             }
+        }
+        
+        public async UniTask<RuntimeAnimatorController> Checkout(RuntimeAnimatorControllerAssetRef assetRef, CancellationToken token)
+        {
+            Log.Assert(CanLocate(assetRef), "Failed to located {0} '{1}'.", nameof(RuntimeAnimatorController), assetRef);
+            
+            RuntimeAnimatorController result;
+            switch (assetRef._mode)
+            {
+                case AssetRefMode.Resources:
+                    result = await _resourcesManager.LoadRuntimeAnimatorController(assetRef._resourcesPath, token);
+                    break;
+                case AssetRefMode.Addressables:
+                    Log.Assert(_addressablesManager != null, nameof(_addressablesManager) + " != null");
+                    result = await _addressablesManager.LoadRuntimeAnimatorController(assetRef._guid, token);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+
+            return result;
         }
         
         public async UniTask<Sprite> Checkout(SpriteAssetRef assetRef, CancellationToken token)

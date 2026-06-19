@@ -42,6 +42,14 @@ namespace DeepForestLabs.Assets.Addressables
                 .WaitUntilCached(token);
         }
 
+        public UniTask DownloadRuntimeAnimatorController(string guid, CancellationToken token)
+        {
+            AssetReferenceT<RuntimeAnimatorController> assetReference = GetRuntimeAnimatorControllerAssetReference(guid);
+
+            return GetRuntimeAnimatorControllerDownloadHandle(guid, assetReference)
+                .WaitUntilCached(token);
+        }
+
         public UniTask DownloadSprite(string guid, CancellationToken token)
         {
             AssetReferenceSprite assetReference = GetSpriteAssetReference(guid);
@@ -117,6 +125,18 @@ namespace DeepForestLabs.Assets.Addressables
             {
                 download = new MeshDownloadHandle(guid, assetReference);
                 _meshDownloads.Add(assetReference, download);
+                _downloadQueue.Add(download);
+            }
+
+            return download;
+        }
+        
+        private RuntimeAnimatorControllerDownloadHandle GetRuntimeAnimatorControllerDownloadHandle(string guid, AssetReferenceT<RuntimeAnimatorController> assetReference)
+        {
+            if (!_runtimeAnimatorControllerDownloads.TryGetValue(assetReference, out RuntimeAnimatorControllerDownloadHandle download))
+            {
+                download = new RuntimeAnimatorControllerDownloadHandle(guid, assetReference);
+                _runtimeAnimatorControllerDownloads.Add(assetReference, download);
                 _downloadQueue.Add(download);
             }
 

@@ -18,6 +18,7 @@ namespace DeepForestLabs.Assets.Addressables
         #endif
         public static Func<string, AudioClip?>? _audioClipAssetRefContextProvider;
         public static Func<string, Mesh?>? _meshAssetRefContextProvider;
+        public static Func<string, RuntimeAnimatorController?>? _runtimeAnimatorControllerAssetRefContextProvider;
         public static Func<string, Sprite?>? _spriteAssetRefContextProvider;
         public static Func<string, string, Sprite?>? _atlasedSpriteAssetRefContextProvider;
         public static Func<string, SpriteAtlas?>? _spriteAtlasAssetRefContextProvider;

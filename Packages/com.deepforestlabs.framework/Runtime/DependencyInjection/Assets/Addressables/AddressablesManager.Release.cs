@@ -33,6 +33,11 @@ namespace DeepForestLabs.Assets.Addressables
             DelayedReleaseMesh(handle).Forget();
         }
         
+        private void ReleaseRuntimeAnimatorController(RuntimeAnimatorControllerAssetHandle handle)
+        {
+            DelayedReleaseRuntimeAnimatorController(handle).Forget();
+        }
+        
         private void ReleaseSprite(SpriteAssetHandle handle)
         {
             DelayedReleaseSprite(handle).Forget();
@@ -95,6 +100,26 @@ namespace DeepForestLabs.Assets.Addressables
             if (_meshAssetHandles.Remove(handle.AssetReference))
             {
                 SafeReleaseMesh(handle.OperationHandle);   
+            }
+        }
+        
+        private async UniTaskVoid DelayedReleaseRuntimeAnimatorController(RuntimeAnimatorControllerAssetHandle handle)
+        {
+            Log.Assert(handle.Count == 0, handle.GetContext(), "handle.Count ({0}) == 0", handle.Count);
+
+            if (!_scope.IsCancellationRequested)
+            {
+                await UniTask.DelayFrame(2, PlayerLoopTiming.EarlyUpdate, _scope);
+                
+                if (handle.Count != 0)
+                {
+                    return;
+                }
+            }
+
+            if (_runtimeAnimatorControllerAssetHandles.Remove(handle.AssetReference))
+            {
+                SafeReleaseRuntimeAnimatorController(handle.OperationHandle);   
             }
         }
         
@@ -354,6 +379,23 @@ namespace DeepForestLabs.Assets.Addressables
         }
         
         private static void SafeReleaseMesh(AsyncOperationHandle<Mesh> handle)
+        {
+            try
+            {
+                if (!handle.IsValid())
+                {
+                    return;
+                }
+                
+                AddressablesImpl.Release(handle);
+            }
+            catch (Exception e)
+            {
+                Log.DevException(e, "Failed to release {0}.", handle.DebugName);
+            }
+        }
+        
+        private static void SafeReleaseRuntimeAnimatorController(AsyncOperationHandle<RuntimeAnimatorController> handle)
         {
             try
             {

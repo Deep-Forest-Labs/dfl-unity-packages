@@ -471,6 +471,90 @@ namespace DeepForestLabs
     }
     
     [Serializable]
+    public sealed class RuntimeAnimatorControllerAssetRef : AssetRefT<RuntimeAnimatorController>, IEquatable<RuntimeAnimatorControllerAssetRef>
+    {
+        private RuntimeAnimatorControllerAssetRef(AssetRefMode mode, string resourcesPath, string guid) : base(mode, resourcesPath, guid)
+        {
+        }
+
+#if UNITY_EDITOR
+        protected internal override bool IsEditorValid()
+        {
+            if (!base.IsEditorValid())
+            {
+                return false;
+            }
+            switch (_mode)
+            {
+                case AssetRefMode.Resources:
+                    return IsResourcesRuntimeAnimatorController();
+                case AssetRefMode.Addressables:
+                    return IsAddressableRuntimeAnimatorController();
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        private bool IsAddressableRuntimeAnimatorController()
+        {
+            if (string.IsNullOrEmpty(_guid))
+            {
+                return false;
+            }
+
+            string? path = AssetDatabase.GUIDToAssetPath(_guid);
+            if (string.IsNullOrEmpty(path))
+            {
+                return false;
+            }
+
+            if (!IsInAddressablesFolder(path))
+            {
+                return false;
+            }
+
+            Type? mainType = AssetDatabase.GetMainAssetTypeAtPath(path);
+            return mainType != null && typeof(RuntimeAnimatorController).IsAssignableFrom(mainType);
+        }
+
+        private bool IsResourcesRuntimeAnimatorController()
+        {
+            if (string.IsNullOrEmpty(_resourcesPath))
+            {
+                return false;
+            }
+
+            RuntimeAnimatorController? controller = Resources.Load<RuntimeAnimatorController>(_resourcesPath);
+            return controller != null;
+        }
+#endif
+
+        public bool Equals(RuntimeAnimatorControllerAssetRef? other)
+        {
+            return base.Equals(other);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is RuntimeAnimatorControllerAssetRef other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public static RuntimeAnimatorControllerAssetRef FromResources(string resourcesPath) =>
+            new(AssetRefMode.Resources, NormalizePath(resourcesPath), string.Empty);
+
+        public static RuntimeAnimatorControllerAssetRef FromAddressables(string guid) =>
+            new(AssetRefMode.Addressables, string.Empty, NormalizeGuid(guid));
+
+        public static bool operator ==(RuntimeAnimatorControllerAssetRef? a, RuntimeAnimatorControllerAssetRef? b) => Equals(a, b);
+        public static bool operator !=(RuntimeAnimatorControllerAssetRef? a, RuntimeAnimatorControllerAssetRef? b) => !Equals(a, b);
+    }
+
+    [Serializable]
     public sealed class SpriteAssetRef : AssetRefT<Sprite>, IEquatable<SpriteAssetRef>
     {
         private SpriteAssetRef(AssetRefMode mode, string resourcesPath, string guid) : base(mode, resourcesPath, guid)

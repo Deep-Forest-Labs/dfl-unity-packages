@@ -102,6 +102,34 @@ namespace DeepForestLabs.Assets.Addressables
             return assetHandle.Asset;
         }
         
+        public async UniTask<RuntimeAnimatorController> LoadRuntimeAnimatorController(string guid, CancellationToken token)
+        {
+            AssetReferenceT<RuntimeAnimatorController> assetReference = GetRuntimeAnimatorControllerAssetReference(guid);
+
+            if (!_runtimeAnimatorControllerAssetHandles.TryGetValue(assetReference, out RuntimeAnimatorControllerAssetHandle? assetHandle))
+            {
+                RuntimeAnimatorControllerDownloadHandle downloadHandle = GetRuntimeAnimatorControllerDownloadHandle(guid, assetReference);
+                IReadOnlyList<IResourceLocation> locations = await downloadHandle
+                    .WaitUntilCached(token);
+                
+                Log.Assert(locations.Count == 1, "locations.Count == 1");
+                IResourceLocation location = locations[0];
+                Log.Assert(typeof(RuntimeAnimatorController).IsAssignableFrom(location.ResourceType),
+                    downloadHandle.EditorContext,
+                    "Location for {0} does not look like an RuntimeAnimatorController. Provider={1}, Id={2}",
+                    downloadHandle.Guid, location.ProviderId, location.InternalId);
+                
+                RuntimeAnimatorControllerLoadHandle loadHandle = GetRuntimeAnimatorControllerLoadHandle(location, downloadHandle);
+                await loadHandle.WaitUntilLoaded(token);
+            
+                Log.Assert(_runtimeAnimatorControllerAssetHandles.ContainsKey(assetReference), downloadHandle.EditorContext, "_runtimeAnimatorControllerAssetHandle.ContainsKey({0})", assetReference);
+                assetHandle = _runtimeAnimatorControllerAssetHandles[assetReference];
+            }
+            
+            assetHandle.Push(token);
+            return assetHandle.Asset;
+        }
+        
         public async UniTask<Sprite> LoadSprite(string guid, CancellationToken token)
         {
             AssetReferenceSprite assetReference = GetSpriteAssetReference(guid);
@@ -339,6 +367,18 @@ namespace DeepForestLabs.Assets.Addressables
             {
                 loadHandle = new MeshLoadHandle(this, downloadHandle, location);
                 _meshLoadHandles.Add(location, loadHandle);
+            }
+
+            return loadHandle;
+        }
+        
+        private RuntimeAnimatorControllerLoadHandle GetRuntimeAnimatorControllerLoadHandle(IResourceLocation location, RuntimeAnimatorControllerDownloadHandle downloadHandle)
+        {
+            if (!_runtimeAnimatorControllerLoadHandles.TryGetValue(location,
+                    out RuntimeAnimatorControllerLoadHandle? loadHandle))
+            {
+                loadHandle = new RuntimeAnimatorControllerLoadHandle(this, downloadHandle, location);
+                _runtimeAnimatorControllerLoadHandles.Add(location, loadHandle);
             }
 
             return loadHandle;
@@ -598,6 +638,71 @@ namespace DeepForestLabs.Assets.Addressables
                     await UniTask.DelayFrame(2, PlayerLoopTiming.EarlyUpdate, token);
 
                     await DownloadMesh(loadHandle.Guid, token);
+                    continue;
+                }
+                
+                // Unclassified, should not happen
+                throw ex;
+            }
+        }
+        
+        private async UniTaskVoid LoadRuntimeAnimatorControllerInBackground(RuntimeAnimatorControllerLoadHandle loadHandle, CancellationToken token)
+        {
+            while (true)
+            {
+                Exception ex;
+                AsyncOperationHandle<RuntimeAnimatorController> operation = AddressablesImpl.LoadAssetAsync<RuntimeAnimatorController>(loadHandle.Location);
+                try
+                {
+                    await operation.ToUniTask(cancellationToken: token);
+                    if (!_runtimeAnimatorControllerLoadHandles.TryGetValue(loadHandle.Location, out _)
+                        || token.IsCancellationRequested 
+                        || loadHandle.ReferenceCount == 0)
+                    {
+                        SafeReleaseRuntimeAnimatorController(operation);
+                        return;
+                    }
+                    
+                    RuntimeAnimatorControllerAssetHandle assetHandle = new RuntimeAnimatorControllerAssetHandle(this, loadHandle, operation);
+                    _runtimeAnimatorControllerAssetHandles.Add(loadHandle.DownloadHandle.AssetReference, assetHandle);
+                    loadHandle.OnLoadComplete(operation);
+                    return;
+                }
+                catch (OperationCanceledException)
+                {
+                    SafeReleaseRuntimeAnimatorController(operation);
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    SafeReleaseRuntimeAnimatorController(operation);
+                    ex = PreferOperationException(operation, e);
+                }
+                
+                if (IsConfigError(ex))
+                {
+                    throw ex;
+                }
+
+                if (IsTransient(ex))
+                {
+                    Log.DebugException(loadHandle.GetContext(), ex, "Load ['{0}'] batch was not successful. Check network.",
+                        loadHandle.Guid);
+                    
+                    await DownloadRuntimeAnimatorController(loadHandle.Guid, token);
+                    continue;
+                }
+                
+                if (LooksLikeCorruption(ex))
+                {
+                    Log.DebugException(loadHandle.GetContext(), ex, "Load ['{0}'] batch was not successful. Looks like corrupted bundle(s).",
+                        loadHandle.Guid);
+                    
+                    AsyncOperationHandle<bool> clearOperation = AddressablesImpl.ClearDependencyCacheAsync(loadHandle.AssetReference, autoReleaseHandle: true);
+                    await clearOperation.ToUniTask();
+                    await UniTask.DelayFrame(2, PlayerLoopTiming.EarlyUpdate, token);
+
+                    await DownloadRuntimeAnimatorController(loadHandle.Guid, token);
                     continue;
                 }
                 

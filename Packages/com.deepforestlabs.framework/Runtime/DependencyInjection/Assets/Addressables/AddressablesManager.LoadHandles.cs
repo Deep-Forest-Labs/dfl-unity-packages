@@ -117,6 +117,19 @@ namespace DeepForestLabs.Assets.Addressables
             }
         }
 
+        private sealed class RuntimeAnimatorControllerLoadHandle : LoadHandle<AssetReferenceT<RuntimeAnimatorController>, RuntimeAnimatorController>
+        {
+            public RuntimeAnimatorControllerLoadHandle(AddressablesManager manager, RuntimeAnimatorControllerDownloadHandle downloadHandle, IResourceLocation location) 
+                : base(manager, downloadHandle, location)
+            {
+            }
+            
+            protected override void LoadInBackground(CancellationToken token)
+            {
+                _manager.LoadRuntimeAnimatorControllerInBackground(this, token).Forget();
+            }
+        }
+
         private sealed class SpriteLoadHandle : LoadHandle<AssetReferenceSprite, Sprite>
         {
             public SpriteLoadHandle(AddressablesManager manager, SpriteDownloadHandle downloadHandle, IResourceLocation location) 

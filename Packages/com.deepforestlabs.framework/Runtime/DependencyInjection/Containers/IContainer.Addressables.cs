@@ -19,6 +19,8 @@ namespace DeepForestLabs
         
         bool CanLocate(MeshAssetRef assetRef);
         
+        bool CanLocate(RuntimeAnimatorControllerAssetRef assetRef);
+        
         bool CanLocate(SpriteAssetRef assetRef);
         
         bool CanLocate(AtlasedSpriteAssetRef assetRef);
@@ -37,6 +39,8 @@ namespace DeepForestLabs
         
         IEnumerable<IResourceLocation> GetLocations(MeshAssetRef assetRef);
         
+        IEnumerable<IResourceLocation> GetLocations(RuntimeAnimatorControllerAssetRef assetRef);
+        
         IEnumerable<IResourceLocation> GetLocations(SpriteAssetRef assetRef);
         
         IEnumerable<IResourceLocation> GetLocations(Texture2DAssetRef assetRef);
@@ -52,6 +56,8 @@ namespace DeepForestLabs
         UniTask Download(AudioClipAssetRef assetRef, CancellationToken token);
 		
         UniTask Download(MeshAssetRef assetRef, CancellationToken token);
+        
+        UniTask Download(RuntimeAnimatorControllerAssetRef assetRef, CancellationToken token);
         
         UniTask Download(SpriteAssetRef assetRef, CancellationToken token);
         
@@ -70,6 +76,8 @@ namespace DeepForestLabs
         UniTask<AudioClip> Checkout(AudioClipAssetRef assetRef, CancellationToken token);
         
         UniTask<Mesh> Checkout(MeshAssetRef assetRef, CancellationToken token);
+        
+        UniTask<RuntimeAnimatorController> Checkout(RuntimeAnimatorControllerAssetRef assetRef, CancellationToken token);
         
         UniTask<Sprite> Checkout(SpriteAssetRef assetRef, CancellationToken token);
         
