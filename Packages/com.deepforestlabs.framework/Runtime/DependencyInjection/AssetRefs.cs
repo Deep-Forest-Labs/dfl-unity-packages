@@ -56,6 +56,15 @@ namespace DeepForestLabs
             _guid = guid;
         }
 
+        // "Has an address been set?" -- distinct from IsValid()/IsEditorValid() asset checks.
+        // Non-throwing so callers can safely treat an unset ref as optional.
+        public bool IsAssigned => _mode switch
+        {
+            AssetRefMode.Addressables => !string.IsNullOrEmpty(_guid),
+            AssetRefMode.Resources => !string.IsNullOrEmpty(_resourcesPath),
+            _ => false
+        };
+
         protected internal virtual bool IsValid()
         {
             switch (_mode)
