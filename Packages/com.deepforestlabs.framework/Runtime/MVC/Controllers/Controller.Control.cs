@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using ZLinq;
 using DeepForestLabs.Logger;
@@ -18,6 +19,9 @@ namespace DeepForestLabs.MVC.Controllers
 
         private CancellationTokenSource? _runTokenSource;
         private UniTaskCompletionSource<ResultV<TResult>>? _runCompletionSource;
+        // An unhandled controller exception is captured here by RunView/RunControl and rethrown
+        // from the public Run(token) so it propagates like IRunnable instead of being swallowed.
+        private ExceptionDispatchInfo? _capturedException;
         public ControlState ControlState { get; private set; } = ControlState.Disabled;
 
         private UniTask InitializeControl(CancellationToken token)
@@ -31,6 +35,7 @@ namespace DeepForestLabs.MVC.Controllers
         {
             ControlState = ControlState.Disabled;
             _runCompletionSource = null;
+            _capturedException = null;
             _runTokenSource?.Cancel();
             _runTokenSource?.Dispose();
             _runTokenSource = null;
@@ -91,13 +96,26 @@ namespace DeepForestLabs.MVC.Controllers
             if (_runCompletionSource == null)
             {
                 Log.Assert(_runTokenSource == null, "_runTokenSource == null");
-                
+
+                _capturedException = null;
                 _runCompletionSource = new UniTaskCompletionSource<ResultV<TResult>>();
                 _runTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, _scope);
                 RunInternal(_runTokenSource.Token).Forget();
             }
 
-            return await _runCompletionSource.Task.AttachExternalCancellation(token);
+            ResultV<TResult> result = await _runCompletionSource.Task.AttachExternalCancellation(token);
+
+            // Rethrow an unhandled controller exception captured by RunView/RunControl so it
+            // propagates to the caller (and, when forgotten, to the unobserved-exception pipeline)
+            // instead of surfacing only as an invalid ResultV.
+            if (_capturedException != null)
+            {
+                ExceptionDispatchInfo captured = _capturedException;
+                _capturedException = null;
+                captured.Throw();
+            }
+
+            return result;
         }
 
         public void Disable()
@@ -233,6 +251,7 @@ namespace DeepForestLabs.MVC.Controllers
             {
                 Log.Exception(e, ZString.Format("Unhandled exception while running {0}", GetType().Name));
 
+                _capturedException = ExceptionDispatchInfo.Capture(e);
                 result = ResultV<TResult>.FromError(e.Message);
                 SetReturnValue(result);
             }

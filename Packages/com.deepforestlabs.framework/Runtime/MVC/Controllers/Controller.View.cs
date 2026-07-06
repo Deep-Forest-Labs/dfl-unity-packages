@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using DeepForestLabs.Logger;
 using Cysharp.Threading.Tasks;
@@ -216,6 +217,7 @@ namespace DeepForestLabs.MVC.Controllers
             catch (Exception e)
             {
                 Log.Exception(e, "Unhandled exception while running {0}", GetType().Name);
+                _capturedException = ExceptionDispatchInfo.Capture(e);
                 SetReturnValue(ResultV<TResult>.FromError(e.Message));
             }
             finally
