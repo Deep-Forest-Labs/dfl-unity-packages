@@ -56,10 +56,21 @@ namespace DeepForestLabs.BuildSystems
 			return new BuildPlayerOptions
 			{
 				scenes = EditorBuildSettings.scenes.AsValueEnumerable().Select(s => s.path).ToArray(),
-				target = EditorUserBuildSettings.activeBuildTarget,
+				target = ResolveBuildTarget(args),
 				options = args.BuildOptions,
 				locationPathName = GetOutputPath(args)
 			};
+		}
+
+		public static BuildTarget ResolveBuildTarget(CommandLineArgs args)
+		{
+			if (!string.IsNullOrEmpty(args.BuildTarget) &&
+			    Enum.TryParse(args.BuildTarget, ignoreCase: true, out BuildTarget parsed))
+			{
+				return parsed;
+			}
+
+			return EditorUserBuildSettings.activeBuildTarget;
 		}
 
 		public static string GetOutputPath() => GetOutputPath(BuildSystemEntryPoint.ReadArgs());
@@ -121,7 +132,7 @@ namespace DeepForestLabs.BuildSystems
 				Directory.CreateDirectory(basePath);
 			}
 
-			return PlatformBuildSetupResolver.Resolve().GetOutputPath(args, basePath);
+			return PlatformBuildSetupResolver.Resolve(ResolveBuildTarget(args)).GetOutputPath(args, basePath);
 		}
 
 		public static string AndroidAPKName(string environment, int buildNumber, string uniqueId)

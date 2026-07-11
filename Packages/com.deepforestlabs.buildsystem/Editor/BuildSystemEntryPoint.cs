@@ -51,7 +51,7 @@ namespace DeepForestLabs.BuildSystems
 
 		    CommandLineArgs args = ReadArgs();
 		    BuildSettingsEditor.Write(args);
-		    PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
+		    PlatformBuildSetupResolver.Resolve(BuilderUtils.ResolveBuildTarget(args)).ConfigureProjectSettings(args);
 
 			EditorSceneManager.OpenScene(EditorBuildSettings.scenes[0].path);
 			EditorApplication.EnterPlaymode();
@@ -105,7 +105,7 @@ namespace DeepForestLabs.BuildSystems
 	        }
 	        CommandLineArgs args = ReadArgs();
 	        BuildSettingsEditor.Write(args);
-	        PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
+	        PlatformBuildSetupResolver.Resolve(BuilderUtils.ResolveBuildTarget(args)).ConfigureProjectSettings(args);
 	        AddressableAssetSettings aas = AddressableAssetSettingsDefaultObject.Settings;
 
 	        try
@@ -159,7 +159,7 @@ namespace DeepForestLabs.BuildSystems
             
             CommandLineArgs args = ReadArgs();
             BuildSettingsEditor.Write(args);
-            PlatformBuildSetupResolver.Resolve().ConfigureProjectSettings(args);
+            PlatformBuildSetupResolver.Resolve(BuilderUtils.ResolveBuildTarget(args)).ConfigureProjectSettings(args);
 
             try
             {

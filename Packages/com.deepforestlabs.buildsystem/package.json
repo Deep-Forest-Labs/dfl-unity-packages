@@ -2,9 +2,9 @@
   "name": "com.deepforestlabs.buildsystem",
   "author": "Deep Forest Labs",
   "displayName": "Deep Forest Labs Build System",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "unity": "2018.4",
-  "description": "Client build system for building Android, iOS, Windows, and WebGL clients",
+  "description": "Client build system for building Android, iOS, Windows, Linux, and WebGL clients",
   "keywords": [
     "builds"
   ],

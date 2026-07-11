@@ -11,6 +11,7 @@ namespace DeepForestLabs.BuildSystems.PlatformSetup
             BuildTarget.iOS => new iOSBuildSetup(),
             BuildTarget.StandaloneWindows64 => new StandaloneBuildSetup(),
             BuildTarget.StandaloneWindows => new StandaloneBuildSetup(),
+            BuildTarget.StandaloneLinux64 => new LinuxStandaloneBuildSetup(),
             BuildTarget.WebGL => new WebGLBuildSetup(),
             _ => throw new BuildException($"Unsupported build target: {target}")
         };
