@@ -5,7 +5,6 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using ZLinq;
 using DeepForestLabs.Logger;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using DeepForestLabs.MVC.Models;
 using DeepForestLabs.MVC.Views;
@@ -67,9 +66,9 @@ namespace DeepForestLabs.MVC.Controllers
         async UniTask<VoidResult> IController<TModel>.Run(CancellationToken token)
         {
             ResultV<TResult> result = await Run(token);
-            if (!result.IsValid)
+            if (result.IsValid)
             {
-                return VoidResult.FromSuccess(); 
+                return VoidResult.FromSuccess();
             }
 
             return VoidResult.FromError(result.Error);
@@ -78,9 +77,9 @@ namespace DeepForestLabs.MVC.Controllers
         async UniTask<VoidResult> IController<TModel>.Run(TModel model, CancellationToken token)
         {
             ResultV<TResult> result = await Run(model, token);
-            if (!result.IsValid)
+            if (result.IsValid)
             {
-                return VoidResult.FromSuccess(); 
+                return VoidResult.FromSuccess();
             }
 
             return VoidResult.FromError(result.Error);
@@ -155,9 +154,9 @@ namespace DeepForestLabs.MVC.Controllers
         async UniTask<VoidResult> IController<TModel>.Disable(CancellationToken token)
         {
             ResultV<TResult> result = await Disable(token);
-            if (!result.IsValid)
+            if (result.IsValid)
             {
-                return VoidResult.FromSuccess(); 
+                return VoidResult.FromSuccess();
             }
 
             return VoidResult.FromError(result.Error);
@@ -249,7 +248,7 @@ namespace DeepForestLabs.MVC.Controllers
             }
             catch (Exception e)
             {
-                Log.Exception(e, ZString.Format("Unhandled exception while running {0}", GetType().Name));
+                Log.Warning("Unhandled exception while running {0}: {1}", GetType().Name, e.Message);
 
                 _capturedException = ExceptionDispatchInfo.Capture(e);
                 result = ResultV<TResult>.FromError(e.Message);

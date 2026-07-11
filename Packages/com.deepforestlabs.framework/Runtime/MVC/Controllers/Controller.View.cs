@@ -216,7 +216,7 @@ namespace DeepForestLabs.MVC.Controllers
             }
             catch (Exception e)
             {
-                Log.Exception(e, "Unhandled exception while running {0}", GetType().Name);
+                Log.Warning("Unhandled exception while running {0}: {1}", GetType().Name, e.Message);
                 _capturedException = ExceptionDispatchInfo.Capture(e);
                 SetReturnValue(ResultV<TResult>.FromError(e.Message));
             }
