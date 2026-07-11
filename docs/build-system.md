@@ -105,6 +105,10 @@ public interface IPlatformBuildSetup
 - IL2CPP with `.exe` output
 - Boot config patching (worker thread count)
 
+**Linux** (`LinuxStandaloneBuildSetup`):
+- IL2CPP with `.x86_64` output (e.g. `Product_default_1_local.x86_64`)
+- Same Standalone named build target / IL2CPP size optimization as Windows
+
 **WebGL** (`WebGLBuildSetup`):
 - IL2CPP
 - Configurable compression format via `-platformArgs compression=gzip`
