@@ -498,9 +498,9 @@ The framework's `Controller<TModel, TView, TResult>` provides a reactive pipelin
 | Method | Triggered by | Purpose | View access? |
 |--------|-------------|---------|--------------|
 | `Initialize(TView, CT)` | Each view checkout from pool | One-time data population (pre-show) | Yes |
-| `Update(CancellationToken)` | Model change (automatic) | Sync model from external services/state | No |
+| `Update(CancellationToken)` | Model change (automatic) | Model-only side effects that do **not** assign `Model` | No |
 | `Update(TView, CancellationToken)` | Model change + view available | Push model state into view setters | Yes |
-| `Run(TView, CancellationToken)` | After open animations | Flow control and user input only | Yes |
+| `Run(TView, CancellationToken)` | After open animations | Flow control, input, and `Model = …` writes from external state | Yes |
 
 ### View Lifecycle Execution Order
 
@@ -525,17 +525,45 @@ protected override UniTask Initialize(LeaderboardView view, CancellationToken to
 }
 ```
 
-**`Update(CancellationToken)`** -- Called every time `Model` changes (via `RunModel` loop). Use this to read external services and update the model with `Model = Model with { ... }`. No view reference -- model-only work.
+**`Update(CancellationToken)`** -- Called every time `Model` changes (via `RunModel` loop). Model-only work with **no view**. Must **not** assign `Model` (see reentrancy rule below). Prefer leaving this empty unless you have non-Model bookkeeping.
+
+**Prohibited: `Model = …` inside `Update(CancellationToken)` (UniTask reentrancy)**
+
+`RunModel` awaits `_model.WaitAsync`. When something (usually `Run`) assigns `Model`, UniTask often resumes that await **synchronously inside** `AsyncReactiveProperty` notification. The next `Update(CT)` therefore runs while the reactive trigger is still iterating. Assigning `Model` again from `Update(CT)` throws:
+
+`InvalidOperationException: Can not trigger itself in iterating.`
+
+Empty poke + sync-in-Update is the common footgun:
 
 ```csharp
+// BAD -- Run pokes Model, Update(CT) writes Model again in the same sync stack
+case ObserveWallet:
+    Model = Model with { }; // poke RunModel
+    break;
+
 protected override void Update(CancellationToken token)
 {
-    if (Model.Score != _scoreService.CurrentScore)
-    {
-        Model = Model with { Score = _scoreService.CurrentScore };
-    }
+    Model = Model with { Credits = _wallet.Value.Credits }; // CRASH
 }
 ```
+
+```csharp
+// GOOD -- assign the full snapshot once from Run; Update(view) binds
+case ObserveWallet:
+    WalletSnapshot w = _wallet.Value;
+    Model = Model with { Credits = w.Credits, Tickets = w.Tickets, Gems = w.Gems };
+    break;
+
+protected override void Update(CancellationToken token) { } // do not assign Model
+
+protected override UniTask Update(HudView view, CancellationToken token)
+{
+    view.SetWallet(Model.Credits, Model.Tickets, Model.Gems);
+    return UniTask.CompletedTask;
+}
+```
+
+Sync external services → Model in `Run` (or after an explicit `await UniTask.Yield` if you must leave a write off the reactive stack). Never nest `Model` writes inside `Update(CT)`.
 
 **`Update(TView, CancellationToken)`** -- Called after `Update(CT)` when a view exists. Auto-cancelled and restarted on model change. Push model state into view setters here.
 
@@ -556,14 +584,13 @@ protected override async UniTask<MenuResult> Run(MenuView view, CancellationToke
 {
     while (true)
     {
-        Input input = await NextInput(view, token);
-        switch (input)
+        switch (await NextInput(view, token))
         {
-            case Input.Play: return MenuResult.Play;
-            case Input.Settings:
+            case MenuInput.Play: return MenuResult.Play;
+            case MenuInput.Settings:
                 await _settingsController.Run(token);
                 break;
-            case Input.Quit: return MenuResult.Quit;
+            case MenuInput.Quit: return MenuResult.Quit;
         }
     }
 }
@@ -573,6 +600,8 @@ protected override async UniTask<MenuResult> Run(MenuView view, CancellationToke
 
 Use the framework's awaitable `OnClick(Button?, CancellationToken)` -- never `onClick.AddListener` or C# event delegates.
 
+For multi-arm `Run` loops (`WhenAny` of clicks, timers, reactive observes), use a **private nested enum + `NextInput` + `switch`**. Do not branch on raw `WhenAny` ints with `if` / `else if`.
+
 ```csharp
 // GOOD -- awaitable, analytics-integrated, auto-cleanup on cancellation
 protected override async UniTask<VoidReturn> Run(DialogView view, CancellationToken token)
@@ -581,15 +610,53 @@ protected override async UniTask<VoidReturn> Run(DialogView view, CancellationTo
     return VoidReturn.Return;
 }
 
-// GOOD -- multi-button with enum mapping
-private async UniTask<Input> NextInput(MenuView view, CancellationToken token)
+// GOOD -- private enum (feature-scoped name; avoid bare `Input` -- clashes with UnityEngine.Input)
+// Enum ordinals MUST match WhenAny argument order in NextInput.
+private enum MenuInput { Play = 0, Settings = 1, Quit = 2 }
+
+private async UniTask<MenuInput> NextInput(MenuView view, CancellationToken token)
 {
-    return (Input)await UniTask.WhenAny(
+    return (MenuInput)await UniTask.WhenAny(
         OnClick(view.PlayButton, token),
         OnClick(view.SettingsButton, token),
         OnClick(view.QuitButton, token)
     );
 }
+
+protected override async UniTask<MenuResult> Run(MenuView view, CancellationToken token)
+{
+    while (true)
+    {
+        switch (await NextInput(view, token))
+        {
+            case MenuInput.Play: return MenuResult.Play;
+            case MenuInput.Settings:
+                await _settingsController.Run(token);
+                break;
+            case MenuInput.Quit: return MenuResult.Quit;
+        }
+    }
+}
+
+// GOOD -- when losers must stop (idle timers, reactive observes), wrap arms in a
+// per-iteration linked CTS, cancel after WhenAny, then switch on the enum.
+private async UniTask<BoardInput> NextInput(GardenBoardView view, CancellationToken token)
+{
+    using var linked = CancellationTokenSource.CreateLinkedTokenSource(token);
+    CancellationToken arm = linked.Token;
+    BoardInput winner = (BoardInput)await UniTask.WhenAny(
+        OnClick(view.FlowerButton, arm),
+        WaitPlotClick(view, arm),
+        ObserveWonder(arm),
+        UniTask.Delay(IdleDialogueMs, cancellationToken: arm));
+    linked.Cancel();
+    return winner;
+}
+
+// BAD -- magic ints / else-if chains
+int winner = await UniTask.WhenAny(...);
+if (winner == 0) { ... }
+else if (winner == 1) { ... }
 
 // BAD -- manual listener management, no analytics, leak-prone
 view.OnPlayClicked += OnPlay;

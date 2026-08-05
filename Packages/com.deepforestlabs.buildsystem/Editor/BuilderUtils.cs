@@ -20,7 +20,9 @@ namespace DeepForestLabs.BuildSystems
 		{
 			if (!Application.isBatchMode && BuildSystemSettings.SettingsExist)
 			{
-				AddressableAssetSettingsDefaultObject.Settings.OnModification = OnAddressableAssetSettingsModification;
+				AddressableAssetSettings? addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
+				if (addressableSettings != null)
+					addressableSettings.OnModification = OnAddressableAssetSettingsModification;
 			}
 
 			BuildSettings? buildSettings = AssetDatabase.LoadAssetAtPath<BuildSettings>(BuildSettingsEditor.ASSET_DATABASE_PATH);
@@ -36,8 +38,20 @@ namespace DeepForestLabs.BuildSystems
 		{
 			if (stateChange == PlayModeStateChange.ExitingEditMode)
 			{
-				BuildSettingsEditor.Write((BuilderIndex)ProjectConfigData.ActivePlayModeIndex);
-				BuildSettingsEditor.Write(BuildSystemEntryPoint.ReadArgs());
+				// Requires Addressables settings + configured play-mode data scripts.
+				// Incomplete local projects (and Mac editor targets) throw / flip define symbols and abort Play Mode.
+				if (AddressableAssetSettingsDefaultObject.Settings == null)
+					return;
+
+				try
+				{
+					BuildSettingsEditor.Write((BuilderIndex)ProjectConfigData.ActivePlayModeIndex);
+					BuildSettingsEditor.Write(BuildSystemEntryPoint.ReadArgs());
+				}
+				catch (Exception e)
+				{
+					Log.Warning("[BuilderUtils] Skipping play-mode BuildSettings write: {0}", e.Message);
+				}
 			}
 		}
 
