@@ -1,0 +1,39 @@
+---
+description: DFL GameObject lifecycle -- Checkout via IGameObjectManager with a scope token; never new GameObject, Instantiate, or Destroy in game code
+alwaysApply: true
+---
+
+# DFL GameObject Lifecycle
+
+All runtime GameObjects are owned by the container scope. Never create or destroy them with raw Unity APIs in game code.
+
+## Prohibited
+
+```csharp
+// BAD -- bypasses pooling, asset loading, and scope teardown
+var go = new GameObject("Fx");
+var instance = Object.Instantiate(prefab);
+Object.Destroy(instance);
+```
+
+## Required: GameObjectManager Checkout
+
+Register prefabs on the builder, inject the manager, and `Checkout` with a `CancellationToken` from the owning scope or controller. The framework check-ins (or destroys) the instance when that token is cancelled — typically when the child container / controller scope disposes.
+
+```csharp
+// In ContainerBuilderFactory:
+builder.AddGameObjectManager(_fxPrefab, GameObjectManagerOptions.OnDemand);
+
+// In service / controller:
+[Dependency] private readonly IGameObjectManagerT<FloatingLabelView> _labels = default!;
+[Dependency] private readonly CancellationToken _token = default!;
+
+FloatingLabelView label = await _labels.Checkout(parent, token);
+// no Release/Destroy — token cancellation returns it to the pool
+```
+
+Prefer MVC `Factory` for UI/features (the framework checkouts the view for you). Use `IGameObjectManager` / `IGameObjectManagerT<T>` for pooled objects outside MVC (FX, labels, projectiles).
+
+## Scene-placed objects
+
+Roots that live in a loaded scene are registered with `AddScene<T>`, not spawned via managers. They unload when the scene's container disposes.
