@@ -395,8 +395,7 @@ namespace DeepForestLabs.BuildSystems
 		        string shortVersion = ZString.Format("{0}.{1}.{2}", versionParts[0], versionParts[1], versionParts[2]);
 		        string environment = bs.Environment.Name;
 		        string uniqueId = bs.Addressables.UniqueId;
-		        AddressableAssetSettings? addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
-		        bool enableJsonCatalog = addressableSettings != null && addressableSettings.EnableJsonCatalog;
+		        bool enableJsonCatalog = AddressableAssetSettingsDefaultObject.Settings.EnableJsonCatalog;
 		        uniqueId = string.IsNullOrEmpty(uniqueId) ? AddressablesBuildSettings.DEFAULT_UNIQUE_VALUE : uniqueId;
 		        string assetId =  bs.Addressables.AssetId;
 		        assetId = string.IsNullOrEmpty(assetId) ? AddressablesBuildSettings.RELEASE_ASSET_ID : assetId;
