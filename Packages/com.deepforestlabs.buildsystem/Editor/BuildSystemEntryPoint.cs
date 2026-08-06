@@ -131,7 +131,8 @@ namespace DeepForestLabs.BuildSystems
         }
 
 	    [MenuItem("Build/Client _F7", true, 3)]
-	    public static bool CanBuildFromCommandLine() => CanBuildContentFromCommandLine();
+	    public static bool CanBuildFromCommandLine() =>
+		    AddressableAssetSettingsDefaultObject.Settings != null && CanBuildContentFromCommandLine();
 	    
         /// <summary>
 		/// Use only for test build will compile and builds.  Faster but wont run. 
@@ -208,6 +209,7 @@ namespace DeepForestLabs.BuildSystems
 
 	    [MenuItem("Build/Content _F8", true, 4)]
 	    public static bool CanBuildContentFromCommandLine() =>
+		    AddressableAssetSettingsDefaultObject.Settings != null &&
 		    ReadArgs().AssetId == AddressablesBuildSettings.RELEASE_ASSET_ID;
 
         /// <summary>
@@ -245,6 +247,7 @@ namespace DeepForestLabs.BuildSystems
 
         [MenuItem("Build/Content Update _F8", true, 5)]
         public static bool CanBuildContentUpdateFromCommandLine() =>
+	        AddressableAssetSettingsDefaultObject.Settings != null &&
 	        ReadArgs().AssetId != AddressablesBuildSettings.RELEASE_ASSET_ID;
 
         [MenuItem("Build/Clean/Cached Bundles _F9", false, 6)]
@@ -392,7 +395,8 @@ namespace DeepForestLabs.BuildSystems
 		        string shortVersion = ZString.Format("{0}.{1}.{2}", versionParts[0], versionParts[1], versionParts[2]);
 		        string environment = bs.Environment.Name;
 		        string uniqueId = bs.Addressables.UniqueId;
-		        bool enableJsonCatalog = AddressableAssetSettingsDefaultObject.Settings.EnableJsonCatalog;
+		        AddressableAssetSettings? addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
+		        bool enableJsonCatalog = addressableSettings != null && addressableSettings.EnableJsonCatalog;
 		        uniqueId = string.IsNullOrEmpty(uniqueId) ? AddressablesBuildSettings.DEFAULT_UNIQUE_VALUE : uniqueId;
 		        string assetId =  bs.Addressables.AssetId;
 		        assetId = string.IsNullOrEmpty(assetId) ? AddressablesBuildSettings.RELEASE_ASSET_ID : assetId;
