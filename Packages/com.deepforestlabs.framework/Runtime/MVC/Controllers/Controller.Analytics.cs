@@ -5,6 +5,7 @@ using System.Threading;
 using DeepForestLabs.Logger;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks.Triggers;
 using DeepForestLabs.MVC.Models;
 using DeepForestLabs.MVC.Views;
 using DeepForestLabs.Utils;
@@ -68,6 +69,59 @@ namespace DeepForestLabs.MVC.Controllers
 			AnalyticsStringValues analytics = Analytics.SetInputValue(buttonName);
 			_analyticsUIEventHelper.ClickedEvent(analytics.str1, analytics.str2, analytics.str3, analytics.str4,
 				analytics.str5, analytics.amount, analytics.extra_data);
+		}
+
+		public async UniTask OnPress(Button? component, CancellationToken token)
+		{
+			if (component != null)
+			{
+				await component.GetAsyncPointerDownTrigger().OnPointerDownAsync(token);
+			}
+			else
+			{
+				Controller.LogMissingUIElement(this, component);
+				await UniTask.Never(token);
+			}
+
+			_analyticsUIEventHelper.ClickedEvent(Analytics.str1, Analytics.str2, Analytics.str3, Analytics.str4,
+				Analytics.str5, Analytics.amount, Analytics.extra_data);
+		}
+
+		public async UniTask OnPress(Button? component, string buttonName, CancellationToken token)
+		{
+			if (component != null)
+			{
+				await component.GetAsyncPointerDownTrigger().OnPointerDownAsync(token);
+			}
+			else
+			{
+				Controller.LogMissingUIElement(this, component);
+				await UniTask.Never(token);
+			}
+
+			if (Analytics.SuppressAnalyticsCalls)
+			{
+				return;
+			}
+
+			AnalyticsStringValues analytics = Analytics.SetInputValue(buttonName);
+			_analyticsUIEventHelper.ClickedEvent(analytics.str1, analytics.str2, analytics.str3, analytics.str4,
+				analytics.str5, analytics.amount, analytics.extra_data);
+		}
+
+		public async UniTask WaitRelease(Button? component, CancellationToken token)
+		{
+			if (component == null)
+			{
+				Controller.LogMissingUIElement(this, component);
+				await UniTask.Never(token);
+				return;
+			}
+
+			// Up or exit — matches web hold stop set (pointerup / pointerleave).
+			await UniTask.WhenAny(
+				component.GetAsyncPointerUpTrigger().OnPointerUpAsync(token),
+				component.GetAsyncPointerExitTrigger().OnPointerExitAsync(token));
 		}
 
 		/// <summary>

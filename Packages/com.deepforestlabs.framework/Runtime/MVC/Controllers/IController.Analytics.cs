@@ -13,6 +13,14 @@ namespace DeepForestLabs.MVC.Controllers
         
         UniTask OnClick(Button? component, CancellationToken token);
         UniTask OnClick(Button? component, string buttonName, CancellationToken token);
+
+        /// <summary>Completes on pointer-down. Prefer for press-and-hold; use <see cref="OnClick"/> for full click.</summary>
+        UniTask OnPress(Button? component, CancellationToken token);
+        UniTask OnPress(Button? component, string buttonName, CancellationToken token);
+
+        /// <summary>Completes on pointer-up or pointer-exit (or cancellation). Pair with <see cref="OnPress"/>.</summary>
+        UniTask WaitRelease(Button? component, CancellationToken token);
+
         UniTask OnSelectedChanged(ToggleGroup? component, CancellationToken token);
         UniTask<bool> OnToggled(Toggle? component, CancellationToken token);
         UniTask<bool> OnToggled(Toggle? component, string buttonName, CancellationToken token);
