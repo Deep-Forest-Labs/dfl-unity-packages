@@ -18,7 +18,7 @@ namespace DeepForestLabs.MVC.Controllers
         UniTask OnPress(Button? component, CancellationToken token);
         UniTask OnPress(Button? component, string buttonName, CancellationToken token);
 
-        /// <summary>Completes on pointer-up or pointer-exit (or cancellation). Pair with <see cref="OnPress"/>.</summary>
+        /// <summary>Completes on pointer-up, pointer-exit, or cancel (or token cancellation). Pair with <see cref="OnPress"/>.</summary>
         UniTask WaitRelease(Button? component, CancellationToken token);
 
         UniTask OnSelectedChanged(ToggleGroup? component, CancellationToken token);

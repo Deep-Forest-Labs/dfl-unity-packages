@@ -118,10 +118,11 @@ namespace DeepForestLabs.MVC.Controllers
 				return;
 			}
 
-			// Up or exit — matches web hold stop set (pointerup / pointerleave).
+			// Up, exit, or cancel — full press end set (pointerup / pointerleave / cancel).
 			await UniTask.WhenAny(
 				component.GetAsyncPointerUpTrigger().OnPointerUpAsync(token),
-				component.GetAsyncPointerExitTrigger().OnPointerExitAsync(token));
+				component.GetAsyncPointerExitTrigger().OnPointerExitAsync(token),
+				component.GetAsyncCancelTrigger().OnCancelAsync(token));
 		}
 
 		/// <summary>
