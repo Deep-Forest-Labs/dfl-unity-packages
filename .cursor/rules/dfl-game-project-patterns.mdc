@@ -111,6 +111,26 @@ public class HudView : ValidatedBehaviour, IView
 
 Views extend `ValidatedBehaviour` (from the framework) instead of raw `MonoBehaviour`. All `[SerializeField]` references are validated in `OnValidate()` using `Log.Validate` -- never at runtime in `Awake()` or any other callback. `Log.Validate` is `[Conditional("UNITY_EDITOR")]` and fires `[Asset Validation Failure]` messages without crashing.
 
+### Fixed Image / chrome slots
+
+UI chrome that turns on/off or swaps art (pips, badges, icons, status dots) uses **fixed `[SerializeField] Image` slots** on the view. Enable/disable, set color, or assign `sprite` — never `Instantiate` / `Destroy` child Images at runtime.
+
+```csharp
+// GOOD -- prefab has MaxPips Image slots; Set only toggles and colors
+[SerializeField] private Image[] _pips = default!;
+for (int i = 0; i < _pips.Length; i++)
+{
+    _pips[i].gameObject.SetActive(i < max);
+    if (i < max) _pips[i].color = i < level ? filled : empty;
+}
+
+// BAD -- runtime pip churn every Bind/Set
+Object.Destroy(child);
+Instantiate(pipTemplate, parent);
+```
+
+Dynamic textures are fine (`image.sprite = catalogSprite`) on those same fixed slots.
+
 ```csharp
 // GOOD -- editor-time validation, no runtime cost, no crashes from pool/lifecycle edge cases
 #if UNITY_EDITOR

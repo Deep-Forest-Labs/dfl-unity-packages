@@ -18,19 +18,22 @@ Object.Destroy(instance);
 
 ## Required: GameObjectManager Checkout
 
-Register prefabs on the builder, inject the manager, and `Checkout` with a `CancellationToken` from the owning scope or controller. The framework check-ins (or destroys) the instance when that token is cancelled — typically when the child container / controller scope disposes.
+Register prefabs on the builder with an **explicit warm policy**, inject the manager, and `Checkout` with a `CancellationToken` from the owning scope or controller. The framework check-ins (or destroys) the instance when that token is cancelled — typically when the child container / controller scope disposes.
 
 ```csharp
-// In ContainerBuilderFactory:
-builder.AddGameObjectManager(_fxPrefab, GameObjectManagerOptions.OnDemand);
+// In ContainerBuilderFactory / Factory — pick a warm policy deliberately:
+builder.AddGameObjectManager(_shopCardPrefab, PoolWarmConfig.BuildRequired(16, 16).ToOptions());
+// or Background / OnDemand via PoolWarmConfig — see dfl-asset-loading
 
 // In service / controller:
-[Dependency] private readonly IGameObjectManagerT<FloatingLabelView> _labels = default!;
+[Dependency] private readonly IGameObjectManagerT<ShopCardView> _cards = default!;
 [Dependency] private readonly CancellationToken _token = default!;
 
-FloatingLabelView label = await _labels.Checkout(parent, token);
+ShopCardView card = await _cards.Checkout(parent, token);
 // no Release/Destroy — token cancellation returns it to the pool
 ```
+
+Do **not** default every registration to `GameObjectManagerOptions.OnDemand`. Cold first `Checkout` Instantiates on the main thread and causes sheet/UI hitches. Use `BuildRequired` (or `Background`) with a catalog-sized `prewarmCount` for UI the player will open in-session.
 
 Prefer MVC `Factory` for UI/features (the framework checkouts the view for you). Use `IGameObjectManager` / `IGameObjectManagerT<T>` for pooled objects outside MVC (FX, labels, projectiles).
 

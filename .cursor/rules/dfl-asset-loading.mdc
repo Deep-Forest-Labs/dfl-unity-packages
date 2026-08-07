@@ -108,6 +108,27 @@ if (controller == null) Debug.LogWarning("Not found");
 
 When a scene is loaded via `AddScene(SceneAssetRef)`, the `AddScene<T>` overload reuses that same scene reference. The `Find<T>` resolver waits for the scene to finish loading, then scans root GameObjects. If the MonoBehaviour is not found, `Build()` fails with a `GameException` -- making missing scene objects a build-time error, not a silent runtime null.
 
+## Pool Warm Policy (GameObject managers)
+
+`AddGameObjectManager` takes `GameObjectManagerOptions`. Prefer a project `PoolWarmConfig` (or equivalent) on the factory SO so each feature can dial warm timing in the Inspector:
+
+| Policy | When load + prewarm runs | Use for |
+| --- | --- | --- |
+| `BuildRequired` | During container `Build` (blocks scope) | Sheet/shop rows the player will open this session |
+| `Background` | After manager resolves, async | Nice-to-warm assets that must not block Build |
+| `OnDemand` | First `Checkout` only | Rare/optional FX; accept a cold hitch |
+
+Set `prewarmCount` to the peak visible count (+ small slack) and `maxPoolSize` to the same so idle memory cannot grow past the warm set. MVC `Factory` views use the same knobs on `_view._options`.
+
+```csharp
+[SerializeField] private GameObjectAssetRefT<ShopCardView> _shopCardPrefab = default!;
+[SerializeField] private PoolWarmConfig _shopCardWarm = PoolWarmConfig.BuildRequired(16, 16);
+
+builder.AddGameObjectManager(_shopCardPrefab, _shopCardWarm.ToOptions());
+```
+
+Do not hardcode `GameObjectManagerOptions.OnDemand` as the universal default.
+
 ## Available AssetRef Types
 
 | Type | Builder method | Injects as |
