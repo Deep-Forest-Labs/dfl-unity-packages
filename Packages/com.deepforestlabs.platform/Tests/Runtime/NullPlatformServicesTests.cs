@@ -101,6 +101,30 @@ namespace DeepForestLabs.Platform.Tests
             Assert.DoesNotThrow(() => helpers.ClickedEvent("a", null, null, null, null, null, null));
             Assert.DoesNotThrow(() => helpers.ClickedCloseEvent("a", null, null, null, null, null, null));
         }
+
+        [Test]
+        public void AnalyticsOnce_TryClaim_OnlyOnce()
+        {
+            const string key = "test_funnel_once_" + nameof(AnalyticsOnce_TryClaim_OnlyOnce);
+            UnityEngine.PlayerPrefs.DeleteKey("dfl.analytics.once." + key);
+            Assert.IsTrue(AnalyticsOnce.TryClaim(key));
+            Assert.IsFalse(AnalyticsOnce.TryClaim(key));
+            Assert.IsTrue(AnalyticsOnce.HasClaimed(key));
+            UnityEngine.PlayerPrefs.DeleteKey("dfl.analytics.once." + key);
+        }
+
+        [Test]
+        public void AttConsentService_Editor_NotRequired()
+        {
+            var consent = new AttConsentService();
+            Assert.AreEqual(ConsentStatus.NotRequired, consent.Status);
+            Assert.IsTrue(consent.AllowsAnalytics);
+            Assert.IsFalse(consent.AllowsPersonalizedAds);
+
+            ConsentStatus requested = consent.RequestTrackingAuthorization(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.AreEqual(ConsentStatus.NotRequired, requested);
+        }
+
     }
 }
 #nullable disable

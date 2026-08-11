@@ -14,6 +14,8 @@ namespace DeepForestLabs.Platform
             {
                 case PlatformServiceOptions.Null:
                     return AddNullPlatformServices(builder);
+                case PlatformServiceOptions.Firebase:
+                    return AddFirebasePlatformServices(builder);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(options), options, "Unsupported PlatformServiceOptions.");
             }
@@ -32,9 +34,23 @@ namespace DeepForestLabs.Platform
                 .AddScoped<ICloudSaveService, NullCloudSaveService>()
                 .AddScoped<IPushNotificationService, NullPushNotificationService>()
                 .AddScoped<IAccountService, NullAccountService>()
-                .AddScoped<IConsentService, NullConsentService>()
-                .AddScoped<UnityServicesWrapper>()
-                .AddScoped<AnalyticsServiceWrapper>();
+                .AddScoped<IConsentService, NullConsentService>();
+        }
+
+        private static IContainerBuilder AddFirebasePlatformServices(IContainerBuilder builder)
+        {
+            return builder
+                .AddScoped<NullAnalyticsUiHelpers>()
+                .AddAlias<IAnalyticsErrorHelper, NullAnalyticsUiHelpers>()
+                .AddScoped<IAnalyticsUIEventHelper, FirebaseAnalyticsUiEventHelper>()
+                .AddScoped<IAnalyticsService, FirebaseAnalyticsService>()
+                .AddScoped<IRemoteConfigService, NullRemoteConfigService>()
+                .AddScoped<IAdService, NullAdService>()
+                .AddScoped<IIapService, NullIapService>()
+                .AddScoped<ICloudSaveService, NullCloudSaveService>()
+                .AddScoped<IPushNotificationService, NullPushNotificationService>()
+                .AddScoped<IAccountService, NullAccountService>()
+                .AddScoped<IConsentService, AttConsentService>();
         }
     }
 }

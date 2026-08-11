@@ -176,7 +176,7 @@ namespace DeepForestLabs
         internal static void EditorExit()
         {
             UniTask.NextFrame(PlayerLoopTiming.Initialization)
-                .ContinueWith(async () =>
+                .ContinueWith(() =>
                 {
                     _runScope?.Cancel();
                     _runScope?.Dispose();

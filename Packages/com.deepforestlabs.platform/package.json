@@ -4,10 +4,11 @@
   "displayName": "Deep Forest Labs Platform",
   "version": "1.0.0",
   "unity": "2022.3",
-  "description": "Mobile platform seams: analytics, ads, IAP, remote config, cloud save, push, account, and consent — with null defaults and UGS bootstrap wrappers",
+  "description": "Mobile platform seams: analytics, ads, IAP, remote config, cloud save, push, account, and consent — with null defaults and Firebase Analytics adapters",
   "keywords": [
     "platform",
     "analytics",
+    "firebase",
     "iap",
     "ads",
     "remote-config",
@@ -19,8 +20,6 @@
     "com.cysharp.unitask": "2.5.10",
     "com.deepforestlabs.framework": "1.0.0",
     "com.deepforestlabs.logger": "1.0.0",
-    "com.deepforestlabs.buildsystem": "1.0.0",
-    "com.unity.services.core": "1.13.0",
-    "com.unity.services.analytics": "6.0.3"
+    "com.deepforestlabs.buildsystem": "1.0.0"
   }
 }

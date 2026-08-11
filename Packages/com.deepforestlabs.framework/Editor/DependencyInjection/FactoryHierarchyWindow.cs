@@ -8,13 +8,23 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
+#if UNITY_6000_4_OR_NEWER
+using ObjectKey = UnityEngine.EntityId;
+#else
+using ObjectKey = System.Int32;
+#endif
+
 namespace DeepForestLabs.EditorTools
 {
     public sealed class FactoryHierarchyWindow : EditorWindow
     {
         private const string MenuPath = "Deep Forest Labs/Tools/Factory Hierarchy";
 
+#if UNITY_6000_4_OR_NEWER
+        [SerializeField] private TreeViewState<int> _treeState = default!;
+#else
         [SerializeField] private TreeViewState _treeState = default!;
+#endif
         [SerializeField] private string _searchString = "";
 
         private FactoryTreeView? _treeView;
@@ -32,7 +42,11 @@ namespace DeepForestLabs.EditorTools
 
         private void OnEnable()
         {
+#if UNITY_6000_4_OR_NEWER
+            _treeState ??= new TreeViewState<int>();
+#else
             _treeState ??= new TreeViewState();
+#endif
             Rebuild();
         }
 
@@ -123,7 +137,7 @@ namespace DeepForestLabs.EditorTools
         public static List<FactoryNode> Build()
         {
             var roots = new List<FactoryNode>();
-            var visited = new HashSet<int>();
+            var visited = new HashSet<ObjectKey>();
 
             var mainArgs = FindMainArgs();
             if (mainArgs != null)
@@ -154,10 +168,10 @@ namespace DeepForestLabs.EditorTools
             return null;
         }
 
-        private static void BuildFromAllFactories(List<FactoryNode> roots, HashSet<int> visited)
+        private static void BuildFromAllFactories(List<FactoryNode> roots, HashSet<ObjectKey> visited)
         {
             var allFactories = new List<ValidatedData>();
-            var referenced = new HashSet<int>();
+            var referenced = new HashSet<ObjectKey>();
 
             string[] guids = AssetDatabase.FindAssets("t:ScriptableObject");
             foreach (string guid in guids)
@@ -175,7 +189,7 @@ namespace DeepForestLabs.EditorTools
 
             foreach (var factory in allFactories)
             {
-                if (!referenced.Contains(factory.GetInstanceID()))
+                if (!referenced.Contains(ObjectId(factory)))
                 {
                     var node = CreateNode(factory, "Root", visited);
                     if (node != null)
@@ -184,7 +198,7 @@ namespace DeepForestLabs.EditorTools
             }
         }
 
-        private static void CollectReferencedFactoryIds(Object factory, HashSet<int> referenced)
+        private static void CollectReferencedFactoryIds(Object factory, HashSet<ObjectKey> referenced)
         {
             var so = new SerializedObject(factory);
             var iterator = so.GetIterator();
@@ -196,13 +210,13 @@ namespace DeepForestLabs.EditorTools
             } while (iterator.NextVisible(false));
         }
 
-        private static void CollectFromProperty(SerializedProperty prop, HashSet<int> referenced)
+        private static void CollectFromProperty(SerializedProperty prop, HashSet<ObjectKey> referenced)
         {
             if (prop.propertyType == SerializedPropertyType.ObjectReference)
             {
                 var obj = prop.objectReferenceValue;
                 if (obj != null && IsFactory(obj))
-                    referenced.Add(obj.GetInstanceID());
+                    referenced.Add(ObjectId(obj));
             }
             else if (prop.isArray && prop.propertyType == SerializedPropertyType.Generic)
             {
@@ -213,16 +227,15 @@ namespace DeepForestLabs.EditorTools
                     {
                         var obj = elem.objectReferenceValue;
                         if (obj != null && IsFactory(obj))
-                            referenced.Add(obj.GetInstanceID());
+                            referenced.Add(ObjectId(obj));
                     }
                 }
             }
         }
 
-        private static FactoryNode? CreateNode(Object asset, string fieldLabel, HashSet<int> visited)
+        private static FactoryNode? CreateNode(Object asset, string fieldLabel, HashSet<ObjectKey> visited)
         {
-            int id = asset.GetInstanceID();
-            if (!visited.Add(id))
+            if (!visited.Add(ObjectId(asset)))
                 return null;
 
             var kind = ClassifyFactory(asset);
@@ -243,7 +256,7 @@ namespace DeepForestLabs.EditorTools
             return node;
         }
 
-        private static void AddChildrenFromProperty(SerializedProperty prop, FactoryNode parent, HashSet<int> visited)
+        private static void AddChildrenFromProperty(SerializedProperty prop, FactoryNode parent, HashSet<ObjectKey> visited)
         {
             if (prop.propertyType == SerializedPropertyType.ObjectReference)
             {
@@ -285,7 +298,7 @@ namespace DeepForestLabs.EditorTools
             return prop.type.Contains("AssetRef");
         }
 
-        private static void TryResolveAssetRef(SerializedProperty prop, FactoryNode parent, HashSet<int> visited)
+        private static void TryResolveAssetRef(SerializedProperty prop, FactoryNode parent, HashSet<ObjectKey> visited)
         {
             var guidProp = prop.FindPropertyRelative("_guid");
             var modeProp = prop.FindPropertyRelative("_mode");
@@ -348,9 +361,22 @@ namespace DeepForestLabs.EditorTools
             }
             return false;
         }
+
+        private static ObjectKey ObjectId(Object obj)
+        {
+#if UNITY_6000_4_OR_NEWER
+            return obj.GetEntityId();
+#else
+            return obj.GetInstanceID();
+#endif
+        }
     }
 
+#if UNITY_6000_4_OR_NEWER
+    internal sealed class FactoryTreeView : TreeView<int>
+#else
     internal sealed class FactoryTreeView : TreeView
+#endif
     {
         private readonly List<FactoryNode> _roots;
         private readonly Dictionary<int, FactoryNode> _nodeMap = new();
@@ -363,7 +389,11 @@ namespace DeepForestLabs.EditorTools
                 alignment = TextAnchor.MiddleLeft,
             };
 
+#if UNITY_6000_4_OR_NEWER
+        public FactoryTreeView(TreeViewState<int> state, List<FactoryNode> roots)
+#else
         public FactoryTreeView(TreeViewState state, List<FactoryNode> roots)
+#endif
             : base(state)
         {
             _roots = roots;
@@ -372,6 +402,45 @@ namespace DeepForestLabs.EditorTools
             Reload();
         }
 
+#if UNITY_6000_4_OR_NEWER
+        protected override TreeViewItem<int> BuildRoot()
+        {
+            var root = new TreeViewItem<int>(-1, -1, "Root");
+            _nodeMap.Clear();
+
+            if (_roots.Count == 0)
+            {
+                root.AddChild(new TreeViewItem<int>(0, 0, "(No factories found)"));
+                return root;
+            }
+
+            int nextId = 0;
+            foreach (var factoryRoot in _roots)
+            {
+                AddNode(root, factoryRoot, 0, ref nextId);
+            }
+
+            if (!root.hasChildren)
+                root.AddChild(new TreeViewItem<int>(0, 0, "(Empty)"));
+
+            SetupDepthsFromParentsAndChildren(root);
+            return root;
+        }
+
+        private void AddNode(TreeViewItem<int> parent, FactoryNode node, int depth, ref int nextId)
+        {
+            int id = nextId++;
+            _nodeMap[id] = node;
+
+            var item = new TreeViewItem<int>(id, depth, node.DisplayName);
+            parent.AddChild(item);
+
+            foreach (var child in node.Children)
+            {
+                AddNode(item, child, depth + 1, ref nextId);
+            }
+        }
+#else
         protected override TreeViewItem BuildRoot()
         {
             var root = new TreeViewItem(-1, -1, "Root");
@@ -401,8 +470,7 @@ namespace DeepForestLabs.EditorTools
             int id = nextId++;
             _nodeMap[id] = node;
 
-            string label = node.DisplayName;
-            var item = new TreeViewItem(id, depth, label);
+            var item = new TreeViewItem(id, depth, node.DisplayName);
             parent.AddChild(item);
 
             foreach (var child in node.Children)
@@ -410,6 +478,7 @@ namespace DeepForestLabs.EditorTools
                 AddNode(item, child, depth + 1, ref nextId);
             }
         }
+#endif
 
         protected override void RowGUI(RowGUIArgs args)
         {
@@ -477,9 +546,15 @@ namespace DeepForestLabs.EditorTools
             }
         }
 
+#if UNITY_6000_4_OR_NEWER
+        protected override bool CanMultiSelect(TreeViewItem<int> item) => false;
+
+        protected override bool DoesItemMatchSearch(TreeViewItem<int> item, string search)
+#else
         protected override bool CanMultiSelect(TreeViewItem item) => false;
 
         protected override bool DoesItemMatchSearch(TreeViewItem item, string search)
+#endif
         {
             if (_nodeMap.TryGetValue(item.id, out var node))
             {

@@ -67,7 +67,8 @@ namespace DeepForestLabs.Platform
 
     public enum PlatformServiceOptions
     {
-        Null = 0
+        Null = 0,
+        Firebase = 1
     }
 }
 #nullable disable

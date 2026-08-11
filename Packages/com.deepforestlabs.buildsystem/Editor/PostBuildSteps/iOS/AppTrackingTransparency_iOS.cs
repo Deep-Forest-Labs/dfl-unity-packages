@@ -31,6 +31,20 @@ public class AppTrackingTransparency_iOS : IPostprocessBuildWithReport
 			rootDict.SetString("NSUserTrackingUsageDescription", TRACKING_DESCRIPTION);
 
 			File.WriteAllText(plistPath, plist.WriteToString());
+
+			string projectPath = report.summary.outputPath + "/Unity-iPhone.xcodeproj/project.pbxproj";
+			PBXProject project = new PBXProject();
+			project.ReadFromFile(projectPath);
+#if UNITY_2019_3_OR_NEWER
+			string target = project.GetUnityMainTargetGuid();
+			string frameworkTarget = project.GetUnityFrameworkTargetGuid();
+#else
+			string target = project.TargetGuidByName("Unity-iPhone");
+			string frameworkTarget = target;
+#endif
+			project.AddFrameworkToProject(target, "AppTrackingTransparency.framework", false);
+			project.AddFrameworkToProject(frameworkTarget, "AppTrackingTransparency.framework", false);
+			project.WriteToFile(projectPath);
 		}
 	}
 }

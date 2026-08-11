@@ -10,8 +10,15 @@ using DeepForestLabs.Platform;
 public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 {
     return base.AddToBuilder(builder)
-        .AddPlatformServices(PlatformServiceOptions.Null);
+#if UNITY_EDITOR
+        .AddPlatformServices(PlatformServiceOptions.Null)
+#else
+        .AddPlatformServices(PlatformServiceOptions.Firebase)
+#endif
+        ;
 }
 ```
 
-See [docs/platform.md](../../docs/platform.md) for the full seam list and framework vs platform analytics split.
+`Firebase` requires the game to install Firebase Unity Analytics packages and commit `google-services.json` / `GoogleService-Info.plist`. See [docs/platform.md](../../docs/platform.md) and ghostgarden `ci/firebase.md`.
+
+Error reporting stays on **Sentry** (`IAnalyticsErrorHelper` remains a no-op).
