@@ -7,11 +7,13 @@ graph TD
     Logger["com.deepforestlabs.logger"]
     Framework["com.deepforestlabs.framework"]
     Audio["com.deepforestlabs.audio"]
+    Platform["com.deepforestlabs.platform"]
     BuildSystem["com.deepforestlabs.buildsystem"]
     UniTask["com.cysharp.unitask"]
     ZString["com.cysharp.zstring"]
     Addressables["com.unity.addressables"]
     Sentry["io.sentry.unity"]
+    UGS["com.unity.services.*"]
 
     Framework --> Logger
     Framework --> UniTask
@@ -20,6 +22,9 @@ graph TD
     Framework --> Sentry
     Audio --> Framework
     Audio --> UniTask
+    Platform --> Framework
+    Platform --> UniTask
+    Platform --> UGS
     BuildSystem --> Logger
     BuildSystem --> Addressables
     Logger --> ZString
@@ -28,6 +33,7 @@ graph TD
 - **Logger** has no DFL dependencies -- it only needs ZString for allocation-free formatting
 - **Framework** depends on Logger and all external packages (UniTask, Addressables, Sentry)
 - **Audio** depends on Framework (for DI, asset loading, and `AudioClipAssetRef`)
+- **Platform** depends on Framework, Build System (`BuildSettings`), and Unity Gaming Services (analytics/core bootstrap); see [platform.md](platform.md)
 - **Build System** depends on Logger and Addressables but not on Framework (it's an editor-only build tool)
 
 ## Design Philosophy

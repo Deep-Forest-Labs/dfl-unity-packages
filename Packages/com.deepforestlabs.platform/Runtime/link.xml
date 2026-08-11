@@ -1,0 +1,3 @@
+<linker>
+    <assembly fullname="DeepForestLabs.Platform" preserve="all"/>
+</linker>

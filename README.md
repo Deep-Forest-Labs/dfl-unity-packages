@@ -10,6 +10,7 @@ A monorepo hosting the core UPM packages for Deep Forest Labs Unity projects.
 | `com.deepforestlabs.buildsystem` | `Packages/com.deepforestlabs.buildsystem` | Multi-platform build pipeline (Android, iOS, Windows, WebGL), environment configuration, and Addressables integration |
 | `com.deepforestlabs.framework` | `Packages/com.deepforestlabs.framework` | Core application framework -- DI container, MVC, async lifecycle, Addressables management, error reporting abstraction |
 | `com.deepforestlabs.audio` | `Packages/com.deepforestlabs.audio` | Audio service -- pooled AudioSource instances, AudioMixer integration, sound catalogs, ducking, DI lifecycle |
+| `com.deepforestlabs.platform` | `Packages/com.deepforestlabs.platform` | Mobile platform seams -- analytics, ads, IAP, remote config, cloud save, push, account, consent (null defaults + UGS bootstrap) |
 
 ## Documentation
 
@@ -22,6 +23,7 @@ Detailed guides live in the [`docs/`](docs/) folder:
 | [Dependency Injection](docs/dependency-injection.md) | Registration API, `[Dependency]` injection, scopes, factories, lifecycle |
 | [Asset Loading](docs/asset-loading.md) | `AssetRef` types, `Checkout`/`Download`, Addressables configuration |
 | [Audio Service](docs/audio-service.md) | Playing sounds, mixer routing, ducking, catalogs, preloading |
+| [Platform](docs/platform.md) | Mobile platform seams, null defaults, analytics split, opt-in registration |
 | [Build System](docs/build-system.md) | Build pipeline, platform setup, environments, CI integration |
 | [Logging](docs/logging.md) | `Log` API, levels, build-time stripping, filtering |
 | [Testing](docs/testing.md) | Test structure, NUnit patterns, mocking the DI container |
@@ -65,7 +67,8 @@ Add these packages to your Unity project's `Packages/manifest.json` using Git UR
     "com.deepforestlabs.audio": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.audio#v1.0.0",
     "com.deepforestlabs.buildsystem": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.buildsystem#v1.0.0",
     "com.deepforestlabs.framework": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.framework#v1.0.0",
-    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0"
+    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0",
+    "com.deepforestlabs.platform": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.platform#v1.0.0"
   }
 }
 ```

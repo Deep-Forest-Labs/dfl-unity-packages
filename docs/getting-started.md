@@ -36,7 +36,8 @@ Add the OpenUPM registry and DFL packages to your `Packages/manifest.json`:
     "com.deepforestlabs.audio": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.audio#v1.0.0",
     "com.deepforestlabs.buildsystem": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.buildsystem#v1.0.0",
     "com.deepforestlabs.framework": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.framework#v1.0.0",
-    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0"
+    "com.deepforestlabs.logger": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.logger#v1.0.0",
+    "com.deepforestlabs.platform": "https://github.com/Deep-Forest-Labs/dfl-unity-packages.git?path=Packages/com.deepforestlabs.platform#v1.0.0"
   }
 }
 ```
@@ -146,3 +147,4 @@ You should see log output confirming your service initialized.
 - [Dependency Injection](dependency-injection.md) -- full registration API and patterns
 - [Asset Loading](asset-loading.md) -- loading prefabs, audio clips, and other assets through the container
 - [Audio Service](audio-service.md) -- setting up BGM, SFX, and sound catalogs
+- [Platform](platform.md) -- mobile platform seams (analytics, ads, IAP, remote config, cloud save, push)
