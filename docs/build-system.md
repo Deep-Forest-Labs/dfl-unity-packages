@@ -162,8 +162,45 @@ The order of these builders in Addressables settings must match the `BuilderInde
 | `-testFlight` | No | iOS: TestFlight export options |
 | `-buildAppBundle` | No | Android: AAB instead of APK |
 | `-scriptingDefines` | No | Additional defines (semicolon-separated) |
-| `-overrideEnvironmentUrl` | No | Override the base environment URL |
+| `-overrideEnvironmentUrl` | No | Override envlist location (HTTP URL **or** local path / `file:` URI, e.g. `ci/envlist.json`) |
 | `-platformArgs` | No | Platform-specific key=value pairs (comma-separated) |
+
+## Environments (local file)
+
+Until a live envlist endpoint exists, check in a JSON file (see ghostgarden `ci/envlist.json`):
+
+```json
+{
+  "envs": [
+    {
+      "name": "store",
+      "serverUrl": "",
+      "analyticsUrl": "",
+      "apiUrl": "",
+      "serverCommsKey": "",
+      "userServiceKey": ""
+    }
+  ]
+}
+```
+
+Point `BuildSystemSettings` `_environmentsUrl` at that relative path, or pass `-overrideEnvironmentUrl ci/envlist.json`.
+
+## CI signing (environment variables)
+
+Do **not** commit keystores or passwords. CI sets:
+
+| Variable | Purpose |
+|----------|---------|
+| `DFL_ANDROID_KEYSTORE_PATH` | Absolute path to upload keystore on the builder |
+| `DFL_ANDROID_KEYSTORE_PASS` | Keystore password (plain), **or** `DFL_ANDROID_KEYSTORE_PASS_B64` |
+| `DFL_ANDROID_KEY_ALIAS` | Key alias |
+| `DFL_ANDROID_KEY_ALIAS_PASS` | Alias password (plain), **or** `DFL_ANDROID_KEY_ALIAS_PASS_B64` |
+| `DFL_APPLE_TEAM_ID` | Apple Developer Team ID (enables automatic signing on TestFlight/CI iOS builds) |
+
+`SetKeystoreInfo_Android` reads the Android vars during preprocess. Missing vars fail **batchmode** Android builds; local editor builds skip if unset.
+
+Ghostgarden store CI: see that repo’s `ci/README.md`.
 
 ## Error Reporting
 

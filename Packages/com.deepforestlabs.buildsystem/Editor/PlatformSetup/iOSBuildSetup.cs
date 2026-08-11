@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using DeepForestLabs.Logger;
 using UnityEditor;
 using UnityEditor.Build;
 
@@ -13,6 +14,24 @@ namespace DeepForestLabs.BuildSystems.PlatformSetup
         public void ConfigureProjectSettings(CommandLineArgs args)
         {
             PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget.iOS, Il2CppCodeGeneration.OptimizeSize);
+
+            string? teamId = SigningEnvironment.Get(SigningEnvironment.AppleTeamId);
+            if (!string.IsNullOrEmpty(teamId))
+            {
+                PlayerSettings.iOS.appleDeveloperTeamID = teamId;
+                PlayerSettings.iOS.appleEnableAutomaticSigning = true;
+                BuildLog.Info("iOSBuildSetup - Applied Apple Team ID from {0}", SigningEnvironment.AppleTeamId);
+            }
+            else if (args.IsCommandLineBuild && args.IsTestFlightBuild)
+            {
+                if (string.IsNullOrWhiteSpace(PlayerSettings.iOS.appleDeveloperTeamID))
+                {
+                    throw new BuildException(
+                        $"iOS TestFlight/CI builds require env var {SigningEnvironment.AppleTeamId} "
+                        + "or a Team ID already set in Player Settings. See docs/build-system.md.");
+                }
+            }
+
             AssetDatabase.SaveAssets();
         }
 

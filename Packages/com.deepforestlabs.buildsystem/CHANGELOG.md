@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+ - CI signing via env vars (`DFL_ANDROID_*`, `DFL_APPLE_TEAM_ID`); remove hardcoded Android keystore placeholders
+ - EnvironmentsDownloader loads local envlist files / `file:` paths (not only HTTP)
+ - iOS Team ID from `DFL_APPLE_TEAM_ID` for TestFlight/CI automatic signing
  - Added support for content update builds
  - Move PlayerPref build args to be scriptable object that are created on build.
  - Cleanup fo various build paths to ensure local and jenkins builds work the same. 

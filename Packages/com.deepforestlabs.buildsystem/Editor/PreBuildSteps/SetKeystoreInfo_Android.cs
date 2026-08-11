@@ -1,44 +1,56 @@
 #if UNITY_ANDROID
-using System;
-using System.Text;
+#nullable enable
 using DeepForestLabs.Logger;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine;
 
 namespace DeepForestLabs.BuildSystems.PreBuildSteps
 {
-	public class SetKeystoreInfo_Android : IPreprocessBuildWithReport
-	{
-		// TODO: Replace with your project's keystore credentials
-		private const string KEYSTORE_NAME = "your-app.keystore";
-		private const string KEYSTORE_PASS = "";
-		private const string KEYSTORE_ALIAS_NAME = "your-alias";
-		private const string KEYSTORE_ALIAS_PASS = "";
+    public class SetKeystoreInfo_Android : IPreprocessBuildWithReport
+    {
+        public int callbackOrder => (int)PreBuildOrder.SetKeystoreInfo;
 
-		public int callbackOrder => (int)PreBuildOrder.SetKeystoreInfo;
+        public void OnPreprocessBuild(BuildReport report)
+        {
+            if (report.summary.platform != BuildTarget.Android)
+            {
+                return;
+            }
 
-		public void OnPreprocessBuild(BuildReport report)
-		{
-			if (report.summary.platform == BuildTarget.Android)
-			{
-				BuildLog.Info("PreBuild:SetKeystoreInfo - Setting keystore info for target {0}", report.summary.platform);
+            if (!SigningEnvironment.HasAndroidKeystoreConfig())
+            {
+                if (Application.isBatchMode)
+                {
+                    SigningEnvironment.RequireAndroidKeystoreForStoreBuild();
+                }
 
-				PlayerSettings.Android.keystoreName = KEYSTORE_NAME;
-				PlayerSettings.Android.keystorePass = DecodeString(KEYSTORE_PASS);
-				PlayerSettings.Android.keystorePass = PlayerSettings.Android.keystorePass;
+                BuildLog.Info(
+                    "PreBuild:SetKeystoreInfo - Skipping; Android keystore env vars not set (local/editor build).");
+                return;
+            }
 
-				PlayerSettings.Android.keyaliasName = KEYSTORE_ALIAS_NAME;
-				PlayerSettings.Android.keyaliasPass = DecodeString(KEYSTORE_ALIAS_PASS);
-				PlayerSettings.Android.keyaliasPass = PlayerSettings.Android.keyaliasPass;
-			}
-		}
+            SigningEnvironment.RequireAndroidKeystoreForStoreBuild();
 
-		private string DecodeString(string encodedString)
-		{
-			byte[] data = Convert.FromBase64String(encodedString);
-			return Encoding.UTF8.GetString(data);
-		}
-	}
+            string keystorePath = SigningEnvironment.Get(SigningEnvironment.AndroidKeystorePath)!;
+            string keystorePass = SigningEnvironment.GetPassword(
+                SigningEnvironment.AndroidKeystorePass,
+                SigningEnvironment.AndroidKeystorePassB64)!;
+            string alias = SigningEnvironment.Get(SigningEnvironment.AndroidKeyAlias)!;
+            string aliasPass = SigningEnvironment.GetPassword(
+                SigningEnvironment.AndroidKeyAliasPass,
+                SigningEnvironment.AndroidKeyAliasPassB64)!;
+
+            BuildLog.Info("PreBuild:SetKeystoreInfo - Applying keystore from env for target {0}", report.summary.platform);
+
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystoreName = keystorePath;
+            PlayerSettings.Android.keystorePass = keystorePass;
+            PlayerSettings.Android.keyaliasName = alias;
+            PlayerSettings.Android.keyaliasPass = aliasPass;
+        }
+    }
 }
+#nullable disable
 #endif

@@ -62,7 +62,7 @@ E0 does **not** auto-forward UI clicks into `IAnalyticsService`. E2 may add an a
 
 ## Store / CI
 
-Store provisioning and CI stay in `com.deepforestlabs.buildsystem` (E1). ATT plist / SKAN post-steps remain there; runtime consent queries go through `IConsentService`.
+Store provisioning and CI use `com.deepforestlabs.buildsystem` plus game-repo workflows. Ghostgarden’s `ci/README.md` is the reference (self-hosted Mac GHA, TestFlight + Play internal, LocalBundles, local `ci/envlist.json`). ATT plist / SKAN post-steps remain in buildsystem; runtime consent queries go through `IConsentService`.
 
 ## Related
 
