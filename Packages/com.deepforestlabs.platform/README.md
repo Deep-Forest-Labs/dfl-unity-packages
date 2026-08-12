@@ -19,6 +19,6 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 }
 ```
 
-`Firebase` requires the game to install Firebase Unity Analytics packages and commit `google-services.json` / `GoogleService-Info.plist`. See [docs/platform.md](../../docs/platform.md) and ghostgarden `ci/firebase.md`.
+`Firebase` requires the game to install Firebase Unity App + Analytics + Remote Config packages and commit `google-services.json` / `GoogleService-Info.plist`. See [docs/platform.md](../../docs/platform.md) and ghostgarden `ci/firebase.md`.
 
-Error reporting stays on **Sentry** (`IAnalyticsErrorHelper` remains a no-op).
+Error reporting stays on **Sentry** (`IAnalyticsErrorHelper` remains a no-op). Force-update / boot gate: `IRemoteConfigService` + `IBootConfigClient` + `AppVersionGate` (game wires App-scope orchestration + Update Required UI).

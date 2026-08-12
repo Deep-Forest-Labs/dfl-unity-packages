@@ -49,6 +49,26 @@ namespace DeepForestLabs.Platform.Tests
             Assert.IsFalse(remote.TryGetInt("max_plots", out _));
             Assert.IsFalse(remote.TryGetFloat("crit_chance", out _));
             Assert.IsFalse(remote.TryGetBool("feature_flag", out _));
+            Assert.AreEqual(
+                RemoteConfigRefreshStatus.Skipped,
+                remote.Refresh(CancellationToken.None).GetAwaiter().GetResult());
+        }
+
+        [Test]
+        public void AppVersionGate_ComparesSemver()
+        {
+            Assert.IsFalse(AppVersionGate.IsUpdateRequired("1.0.0", "1.0.0"));
+            Assert.IsFalse(AppVersionGate.IsUpdateRequired("1.2.0", "1.0.0"));
+            Assert.IsTrue(AppVersionGate.IsUpdateRequired("1.0.0", "1.0.1"));
+            Assert.IsTrue(AppVersionGate.IsUpdateRequired("1.0.0f1", "1.1.0"));
+            Assert.IsFalse(AppVersionGate.IsUpdateRequired(null, "1.0.0"));
+            Assert.IsFalse(AppVersionGate.IsUpdateRequired("1.0.0", "not-a-version"));
+        }
+
+        [Test]
+        public void OfflineBootDebug_PrefsKey_IsStable()
+        {
+            Assert.AreEqual("dfl.debug.allow_offline_boot", OfflineBootDebug.PrefsKey);
         }
 
         [Test]

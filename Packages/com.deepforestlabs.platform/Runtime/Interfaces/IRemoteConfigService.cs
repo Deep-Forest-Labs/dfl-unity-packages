@@ -5,11 +5,21 @@ using UnityEngine.Scripting;
 
 namespace DeepForestLabs.Platform
 {
+    public enum RemoteConfigRefreshStatus
+    {
+        Succeeded = 0,
+        Failed = 1,
+        Skipped = 2
+    }
+
     [Preserve]
     [RequireImplementors]
     public interface IRemoteConfigService
     {
-        UniTask Refresh(CancellationToken token);
+        /// <summary>
+        /// Performs a fresh remote fetch when available. Cache-only activate is not success for Firebase.
+        /// </summary>
+        UniTask<RemoteConfigRefreshStatus> Refresh(CancellationToken token);
 
         bool TryGetString(string key, out string value);
 

@@ -7,11 +7,11 @@ namespace DeepForestLabs.Platform
 {
     public sealed class NullRemoteConfigService : IRemoteConfigService
     {
-        public UniTask Refresh(CancellationToken token)
+        public UniTask<RemoteConfigRefreshStatus> Refresh(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            NullPlatformLog.Once(nameof(NullRemoteConfigService) + "." + nameof(Refresh), "no-op");
-            return UniTask.CompletedTask;
+            NullPlatformLog.Once(nameof(NullRemoteConfigService) + "." + nameof(Refresh), "skipped");
+            return UniTask.FromResult(RemoteConfigRefreshStatus.Skipped);
         }
 
         public bool TryGetString(string key, out string value)

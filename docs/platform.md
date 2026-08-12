@@ -26,22 +26,33 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 | Option | Behavior |
 |--------|----------|
 | `Null` | No-op seams (editor / tests) |
-| `Firebase` | Firebase Analytics + ATT consent; other seams still null until later epics |
+| `Firebase` | Firebase Analytics + Remote Config + ATT consent; other seams still null until later epics |
 
-Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `com.google.firebase.analytics`). The platform Firebase adapter uses reflection so this package always compiles; without the SDK present at runtime, events are dropped.
+Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped and RC refresh fails.
 
 ## Seams
 
 | Interface | Null behavior | Later epic |
 |-----------|---------------|------------|
 | `IAnalyticsService` | Drops events | E2 — Firebase funnels |
-| `IRemoteConfigService` | No keys | E3 — remote overlay |
+| `IRemoteConfigService` | `Refresh` → `Skipped`; no keys | E3 — `min_required_version` (Firebase) |
+| `IBootConfigClient` | Local stub snapshot | E3 — game overrides with catalog mapping; later HTTP `/boot` |
 | `IAdService` | `Unavailable` (never grants reward) | E4 — mediation |
 | `IIapService` | `Unavailable` (never grants entitlement) | E5 — store + validation |
 | `ICloudSaveService` | `Unavailable` blob/key API | E6 — cloud mirror |
 | `IPushNotificationService` | `Unavailable` | E7 — push |
 | `IAccountService` | Device-local anonymous id | E6 — link / recovery |
 | `IConsentService` | `NotRequired` | E2 — ATT (`AttConsentService` on Firebase option) |
+
+## Config / force-update (E3)
+
+**Remote Config (scalars only):** key `min_required_version` (console default `1.0.0`). Economy/user payloads do **not** live in RC.
+
+**Boot client:** `IBootConfigClient.Fetch` → `BootSnapshot` (`PlayerId`, `EconomyId`, `EconomyRevision`, `EconomySource`). Platform registers `NullBootConfigClient`. Games register a child-scope override that builds economy **in memory from catalogs** (no managed JSON export in E3). Swap later to HTTPS `/boot` without changing garden consumers of `BootSnapshot`.
+
+**App-scope gate (game orchestration):** every App container start, run RC refresh ∥ boot fetch in parallel; then semver gate via `AppVersionGate` against `Application.version`. Release **fail-closed** if RC fresh fetch fails (block). Editor / `Null` path uses `Skipped` and does not require network. Debug escape: `NOT_RELEASE_BUILD` + PlayerPrefs `dfl.debug.allow_offline_boot` (`OfflineBootDebug`).
+
+**Helpers:** `RemoteConfigKeys.MinRequiredVersion`, `AppVersionGate`, `OfflineBootDebug`.
 
 ## Analytics: framework vs platform
 
