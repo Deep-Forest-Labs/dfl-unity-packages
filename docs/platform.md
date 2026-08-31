@@ -26,7 +26,7 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 | Option | Behavior |
 |--------|----------|
 | `Null` | No-op seams (editor / tests) |
-| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth + Firestore cloud save; other seams still null until later epics |
+| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth + Firestore cloud save; ads stay `NullAdService` until the game App scope registers `MaxAdService` |
 
 Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth` / `firestore`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, Auth falls back to a device-local id, and cloud save is `Unavailable`.
 
@@ -37,7 +37,7 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 | `IAnalyticsService` | Drops events | E2 — Firebase funnels |
 | `IRemoteConfigService` | `Refresh` → `Skipped`; no keys | E3 — `min_required_version` (Firebase) |
 | `IBootConfigClient` | Local stub snapshot | E3 — game overrides with catalog mapping; later HTTP `/boot` |
-| `IAdService` | `Unavailable` (never grants reward) | E4 — mediation |
+| `IAdService` | `Unavailable` (never grants reward) | E4 — `MaxAdService` + `IMaxSdkClient` (game supplies MAX) |
 | `IIapService` | `Unavailable` (never grants entitlement) | E5 — store + validation |
 | `ICloudSaveService` | `Unavailable` blob/key API | E6 — Firestore (`FirebaseCloudSaveService`) |
 | `IPushNotificationService` | `Unavailable` | E7 — push |
@@ -82,6 +82,20 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 **Analytics:** `account_create` / `account_sign_in` / `account_sign_out` / `account_password_reset` `{ result }` (lowercase enum). No email in params.
 
 **Out of this adapter:** Settings UX, Firestore blob, Sign in with Apple/Google (later).
+
+## Ads (E4)
+
+**Registration:** `AddPlatformServices` always registers `NullAdService`. The game App child (after ATT) may override with `IAdPlacementConfig` + `IMaxSdkClient` + `MaxAdService`. Editor stays on Null.
+
+**SDK:** AppLovin MAX is **owned by the game**. Platform never references `MaxSdk`. The game implements `IMaxSdkClient` (`ApplovinMaxSdkClient` in ghostgarden) and turns on `DFL_MAX_SDK` after the plugin is installed. `NullMaxSdkClient` / a no-op client (`IsPresent == false`) leaves ads unavailable without crashing.
+
+**Config:** `IAdPlacementConfig` is game-owned (SDK key + placement → ad unit). Platform never hardcodes keys.
+
+**API:** Rewarded only in E4. Interstitial methods return `Unavailable`. `ShowRewarded` never grants game economy — callers decide rewards. Results: `Completed` / `Skipped` / `Failed` / `Unavailable` / `Cancelled`.
+
+**Analytics:** `ad_rewarded` `{ placement, result }` (lowercase result). Revenue / `ad_impression` is a later epic.
+
+**Out of this adapter:** MAX plugin import, Player define, store-url MAX signup, in-game placements (ghostgarden Settings debug harness only).
 
 ## Consent policy (ATT)
 

@@ -19,6 +19,15 @@ namespace DeepForestLabs.Platform.Tests
         }
 
         [Test]
+        public void NullMaxSdkClient_IsNotPresent()
+        {
+            var max = new NullMaxSdkClient();
+            Assert.IsFalse(max.IsPresent);
+            Assert.IsFalse(max.IsRewardedReady("unit"));
+            max.Initialize(CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        [Test]
         public void NullIapService_Purchase_ReturnsUnavailable_AndGrantsNothing()
         {
             var iap = new NullIapService();
