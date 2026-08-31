@@ -65,6 +65,16 @@ namespace DeepForestLabs.Platform
         Restricted = 4
     }
 
+    public enum AccountActionResult
+    {
+        Unavailable = 0,
+        Succeeded = 1,
+        Failed = 2,
+        Cancelled = 3,
+        EmailInUse = 4,
+        InvalidCredential = 5
+    }
+
     public enum PlatformServiceOptions
     {
         Null = 0,

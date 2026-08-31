@@ -26,9 +26,9 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 | Option | Behavior |
 |--------|----------|
 | `Null` | No-op seams (editor / tests) |
-| `Firebase` | Firebase Analytics + Remote Config + ATT consent; other seams still null until later epics |
+| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth (`FirebaseAccountService`); other seams still null until later epics |
 
-Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped and RC refresh fails.
+Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, and Auth falls back to a device-local id.
 
 ## Seams
 
@@ -41,7 +41,7 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 | `IIapService` | `Unavailable` (never grants entitlement) | E5 — store + validation |
 | `ICloudSaveService` | `Unavailable` blob/key API | E6 — cloud mirror |
 | `IPushNotificationService` | `Unavailable` | E7 — push |
-| `IAccountService` | Device-local anonymous id | E6 — link / recovery |
+| `IAccountService` | Device-local anonymous id | E6 — Firebase Auth (`FirebaseAccountService`) |
 | `IConsentService` | `NotRequired` | E2 — ATT (`AttConsentService` on Firebase option) |
 
 ## Config / force-update (E3)
@@ -68,6 +68,20 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 - `FirebaseAnalyticsService` + `FirebaseAnalyticsUiEventHelper` (`ui_click` forwarder)
 - `NullAnalyticsUiHelpers` (error helper stays no-op — **Sentry** is crash/error truth)
 - `AnalyticsOnce` — lifetime-once funnel flags in PlayerPrefs (not game save)
+
+## Account / Auth (E6)
+
+**Registration:** `AddFirebasePlatformServices` registers `FirebaseAccountService` as `IAccountService`. Editor / `PlatformServiceOptions.Null` stays `NullAccountService` (PlayerPrefs GUID, no email).
+
+**SDK:** Game installs `com.google.firebase.auth` (ghostgarden E6.3). Platform uses reflection; missing SDK → device-local id + `AccountActionResult.Unavailable` on mutations (no crash).
+
+**Lifecycle:** `IInitializable` restores a persisted session or signs in anonymously **before** boot fetch so `BootSnapshot.PlayerId` is the Firebase uid.
+
+**API:** `CreateAccount` links the anonymous user with email+password; `SignIn` / `SignOut` / `SendPasswordReset`; `IsLinked` when the user has an email provider. Results: `Unavailable` / `Succeeded` / `Failed` / `Cancelled` / `EmailInUse` / `InvalidCredential`.
+
+**Analytics:** `account_create` / `account_sign_in` / `account_sign_out` / `account_password_reset` `{ result }` (lowercase enum). No email in params.
+
+**Out of this adapter:** Settings UX, Firestore blob, Sign in with Apple/Google (later).
 
 ## Consent policy (ATT)
 
