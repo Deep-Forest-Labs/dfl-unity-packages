@@ -107,10 +107,23 @@ namespace DeepForestLabs.Platform.Tests
         {
             var account = new NullAccountService();
             Assert.IsFalse(account.IsLinked);
+            Assert.IsNull(account.Email);
             string first = account.PlayerId;
             Assert.IsFalse(string.IsNullOrEmpty(first));
             Assert.AreEqual(first, account.PlayerId);
             Assert.DoesNotThrow(() => account.EnsureAnonymousAsync(CancellationToken.None).GetAwaiter().GetResult());
+            Assert.AreEqual(
+                AccountActionResult.Unavailable,
+                account.CreateAccount("a@b.c", "secret", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.AreEqual(
+                AccountActionResult.Unavailable,
+                account.SignIn("a@b.c", "secret", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.AreEqual(
+                AccountActionResult.Unavailable,
+                account.SendPasswordReset("a@b.c", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.AreEqual(
+                AccountActionResult.Succeeded,
+                account.SignOut(CancellationToken.None).GetAwaiter().GetResult());
         }
 
         [Test]

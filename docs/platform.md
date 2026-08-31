@@ -26,9 +26,9 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 | Option | Behavior |
 |--------|----------|
 | `Null` | No-op seams (editor / tests) |
-| `Firebase` | Firebase Analytics + Remote Config + ATT consent; other seams still null until later epics |
+| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth + Firestore cloud save; other seams still null until later epics |
 
-Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped and RC refresh fails.
+Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth` / `firestore`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, Auth falls back to a device-local id, and cloud save is `Unavailable`.
 
 ## Seams
 
@@ -39,9 +39,9 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 | `IBootConfigClient` | Local stub snapshot | E3 — game overrides with catalog mapping; later HTTP `/boot` |
 | `IAdService` | `Unavailable` (never grants reward) | E4 — mediation |
 | `IIapService` | `Unavailable` (never grants entitlement) | E5 — store + validation |
-| `ICloudSaveService` | `Unavailable` blob/key API | E6 — cloud mirror |
+| `ICloudSaveService` | `Unavailable` blob/key API | E6 — Firestore (`FirebaseCloudSaveService`) |
 | `IPushNotificationService` | `Unavailable` | E7 — push |
-| `IAccountService` | Device-local anonymous id | E6 — link / recovery |
+| `IAccountService` | Device-local anonymous id | E6 — Firebase Auth (`FirebaseAccountService`) |
 | `IConsentService` | `NotRequired` | E2 — ATT (`AttConsentService` on Firebase option) |
 
 ## Config / force-update (E3)
@@ -69,6 +69,20 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 - `NullAnalyticsUiHelpers` (error helper stays no-op — **Sentry** is crash/error truth)
 - `AnalyticsOnce` — lifetime-once funnel flags in PlayerPrefs (not game save)
 
+## Account / Auth (E6)
+
+**Registration:** `AddFirebasePlatformServices` registers `FirebaseAccountService` as `IAccountService`. Editor / `PlatformServiceOptions.Null` stays `NullAccountService` (PlayerPrefs GUID, no email).
+
+**SDK:** Game installs `com.google.firebase.auth` (ghostgarden E6.3). Platform uses reflection; missing SDK → device-local id + `AccountActionResult.Unavailable` on mutations (no crash).
+
+**Lifecycle:** `IInitializable` restores a persisted session or signs in anonymously **before** boot fetch so `BootSnapshot.PlayerId` is the Firebase uid.
+
+**API:** `CreateAccount` links the anonymous user with email+password; `SignIn` / `SignOut` / `SendPasswordReset`; `IsLinked` when the user has an email provider. Results: `Unavailable` / `Succeeded` / `Failed` / `Cancelled` / `EmailInUse` / `InvalidCredential`.
+
+**Analytics:** `account_create` / `account_sign_in` / `account_sign_out` / `account_password_reset` `{ result }` (lowercase enum). No email in params.
+
+**Out of this adapter:** Settings UX, Firestore blob, Sign in with Apple/Google (later).
+
 ## Consent policy (ATT)
 
 - iOS: request ATT early (`IConsentService.RequestTrackingAuthorization`)
@@ -78,7 +92,15 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 
 ## Cloud save vs game save
 
-`ICloudSaveService` is a **generic string blob/key store**. Game schemas (e.g. ghostgarden `ISaveService` / `GardenSaveState`) stay in game code and may mirror through cloud save later — platform never owns garden schema.
+`ICloudSaveService` is a **generic string blob/key store**. Game schemas (e.g. ghostgarden `ISaveService` / `GardenSaveState`) stay in game code — platform never owns garden schema.
+
+**E6 Firestore:** `FirebaseCloudSaveService` on `PlatformServiceOptions.Firebase`. Document `saves/{uid}` (Auth uid); each key is a string field (`gw-save` in ghostgarden). `SetAsync` merge on save; missing doc/field → `NotFound`. Missing Firestore SDK → `Unavailable` (no crash).
+
+**Rules:** owner-only (`request.auth.uid == uid`). Snippet: ghostgarden `ci/firebase.md`.
+
+**Analytics:** `cloud_save` `{ result }` on **failure** only.
+
+**Out of this adapter:** Settings conflict UX, upload debounce (game `SaveService`, E6.3).
 
 ## Null semantics
 

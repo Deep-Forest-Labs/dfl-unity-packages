@@ -49,9 +49,9 @@ namespace DeepForestLabs.Platform
                 .AddScoped<IBootConfigClient, NullBootConfigClient>()
                 .AddScoped<IAdService, NullAdService>()
                 .AddScoped<IIapService, NullIapService>()
-                .AddScoped<ICloudSaveService, NullCloudSaveService>()
+                .AddScoped<ICloudSaveService, FirebaseCloudSaveService>()
                 .AddScoped<IPushNotificationService, NullPushNotificationService>()
-                .AddScoped<IAccountService, NullAccountService>()
+                .AddScoped<IAccountService, FirebaseAccountService>()
                 .AddScoped<IConsentService, AttConsentService>();
         }
     }

@@ -13,7 +13,17 @@ namespace DeepForestLabs.Platform
 
         bool IsLinked { get; }
 
+        string? Email { get; }
+
         UniTask EnsureAnonymousAsync(CancellationToken token);
+
+        UniTask<AccountActionResult> CreateAccount(string email, string password, CancellationToken token);
+
+        UniTask<AccountActionResult> SignIn(string email, string password, CancellationToken token);
+
+        UniTask<AccountActionResult> SignOut(CancellationToken token);
+
+        UniTask<AccountActionResult> SendPasswordReset(string email, CancellationToken token);
     }
 }
 #nullable disable
