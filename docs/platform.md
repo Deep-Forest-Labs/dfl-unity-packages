@@ -26,9 +26,9 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 | Option | Behavior |
 |--------|----------|
 | `Null` | No-op seams (editor / tests) |
-| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth (`FirebaseAccountService`); other seams still null until later epics |
+| `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth + Firestore cloud save; other seams still null until later epics |
 
-Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, and Auth falls back to a device-local id.
+Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth` / `firestore`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, Auth falls back to a device-local id, and cloud save is `Unavailable`.
 
 ## Seams
 
@@ -39,7 +39,7 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 | `IBootConfigClient` | Local stub snapshot | E3 — game overrides with catalog mapping; later HTTP `/boot` |
 | `IAdService` | `Unavailable` (never grants reward) | E4 — mediation |
 | `IIapService` | `Unavailable` (never grants entitlement) | E5 — store + validation |
-| `ICloudSaveService` | `Unavailable` blob/key API | E6 — cloud mirror |
+| `ICloudSaveService` | `Unavailable` blob/key API | E6 — Firestore (`FirebaseCloudSaveService`) |
 | `IPushNotificationService` | `Unavailable` | E7 — push |
 | `IAccountService` | Device-local anonymous id | E6 — Firebase Auth (`FirebaseAccountService`) |
 | `IConsentService` | `NotRequired` | E2 — ATT (`AttConsentService` on Firebase option) |
@@ -92,7 +92,15 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 
 ## Cloud save vs game save
 
-`ICloudSaveService` is a **generic string blob/key store**. Game schemas (e.g. ghostgarden `ISaveService` / `GardenSaveState`) stay in game code and may mirror through cloud save later — platform never owns garden schema.
+`ICloudSaveService` is a **generic string blob/key store**. Game schemas (e.g. ghostgarden `ISaveService` / `GardenSaveState`) stay in game code — platform never owns garden schema.
+
+**E6 Firestore:** `FirebaseCloudSaveService` on `PlatformServiceOptions.Firebase`. Document `saves/{uid}` (Auth uid); each key is a string field (`gw-save` in ghostgarden). `SetAsync` merge on save; missing doc/field → `NotFound`. Missing Firestore SDK → `Unavailable` (no crash).
+
+**Rules:** owner-only (`request.auth.uid == uid`). Snippet: ghostgarden `ci/firebase.md`.
+
+**Analytics:** `cloud_save` `{ result }` on **failure** only.
+
+**Out of this adapter:** Settings conflict UX, upload debounce (game `SaveService`, E6.3).
 
 ## Null semantics
 
