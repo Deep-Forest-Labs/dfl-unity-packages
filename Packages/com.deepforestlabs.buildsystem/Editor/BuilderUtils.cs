@@ -75,6 +75,20 @@ namespace DeepForestLabs.BuildSystems
 
 		public static string GetOutputPath() => GetOutputPath(BuildSystemEntryPoint.ReadArgs());
 
+		/// <summary>
+		/// Directory that owns Builds/, Backups/, and AssetBundles/.
+		/// Defaults to the Unity project root (parent of Assets/).
+		/// </summary>
+		public static string ResolveOutputRoot(CommandLineArgs args)
+		{
+			if (!string.IsNullOrEmpty(args.OutputRoot))
+			{
+				return Path.GetFullPath(args.OutputRoot);
+			}
+
+			return Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+		}
+
 		public static void ReturnErrorCode(Exception e)
 		{
 			BuildLog.Exception(e);
@@ -101,8 +115,7 @@ namespace DeepForestLabs.BuildSystems
 		public static string GetBuildPath()
 		{
 			CommandLineArgs args = BuildSystemEntryPoint.ReadArgs();
-			string buildPath = ZString.Format("{0}/../../Builds/{1}/{2}/", Application.dataPath, args.BuildTarget,
-				args.UniqueId);
+			string buildPath = Path.Combine(ResolveOutputRoot(args), "Builds", args.BuildTarget, args.UniqueId);
 			if (!Directory.Exists(buildPath))
 			{
 				Directory.CreateDirectory(buildPath);
@@ -114,8 +127,7 @@ namespace DeepForestLabs.BuildSystems
 		public static string GetBackupPath()
 		{
 			CommandLineArgs args = BuildSystemEntryPoint.ReadArgs();
-			string buildPath = ZString.Format("{0}/../../Backups/{1}/{2}/", Application.dataPath, args.BuildTarget,
-				args.UniqueId);
+			string buildPath = Path.Combine(ResolveOutputRoot(args), "Backups", args.BuildTarget, args.UniqueId);
 			if (!Directory.Exists(buildPath))
 			{
 				Directory.CreateDirectory(buildPath);

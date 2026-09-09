@@ -1,7 +1,7 @@
 #nullable enable
 using System;
+using System.IO;
 using DeepForestLabs.Logger;
-using Cysharp.Text;
 using UnityEngine;
 using AddressableImpl = UnityEngine.AddressableAssets.Addressables;
 
@@ -12,6 +12,7 @@ namespace DeepForestLabs.BuildSystems
     {
         private static string? _assetId;
         private static string? _cdn;
+        private static string? _outputRoot;
         
         // Built variables
         public static string LocalBuildPath => GetLocalBuildPath();
@@ -37,6 +38,17 @@ namespace DeepForestLabs.BuildSystems
                     _assetId = abs.AssetId;
                 }
             }
+        }
+
+        /// <summary>
+        /// Absolute directory that owns AssetBundles/ (and, via BuilderUtils, Builds/
+        /// and Backups/). Empty or null restores the project-root default.
+        /// Editor entry points push the resolved -outputRoot here because this
+        /// type lives in Runtime and cannot see CommandLineArgs.
+        /// </summary>
+        public static void ConfigureOutputRoot(string? root)
+        {
+            _outputRoot = string.IsNullOrEmpty(root) ? null : root;
         }
         
         private static string GetLocalBuildPath()
@@ -73,17 +85,32 @@ namespace DeepForestLabs.BuildSystems
 #endif
         }
 
+        private static string GetOutputRoot()
+        {
+#if !UNITY_EDITOR
+            throw new InvalidOperationException("GetOutputRoot is Editor-only.");
+#else
+            if (!string.IsNullOrEmpty(_outputRoot))
+            {
+                return Path.GetFullPath(_outputRoot);
+            }
+
+            // Parent of Assets/ — the Unity project root.
+            return Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+#endif
+        }
+
         private static string GetRemoteBuildPath()
         {
 #if !UNITY_EDITOR
             // Prevent accidental use in a built player
             throw new InvalidOperationException("GetRemoteBuildPath is Editor-only. At runtime use GetRemoteLoadPath instead.");
 #else
-            return new Uri(ZString.Format("{0}/../../AssetBundles/{1}/{2}", 
-                Application.dataPath, 
-                BuildSettings.Instance.Addressables.UniqueId, 
-                BuildSettings.Instance.BuildTarget)
-            ).AbsolutePath;
+            return Path.Combine(
+                GetOutputRoot(),
+                "AssetBundles",
+                BuildSettings.Instance.Addressables.UniqueId,
+                BuildSettings.Instance.BuildTarget);
 #endif
         }
         
@@ -117,6 +144,7 @@ namespace DeepForestLabs.BuildSystems
         {
             _cdn = null;
             _assetId = null;
+            _outputRoot = null;
         }
     }
 }
