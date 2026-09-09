@@ -38,6 +38,7 @@ namespace DeepForestLabs.BuildSystems
 	    private const string BUILD_APP_BUNDLE = "-buildAppBundle";
 	    private const string SCRIPTING_DEFINES = "-scriptingDefines";
 	    private const string OVERRIDE_ENVIRONMENT_FILE = "-overrideEnvironmentUrl";
+	    private const string OUTPUT_ROOT = "-outputRoot";
 	    private const string PLATFORM_ARGS = "-platformArgs";
 	    private const string FAILED_BUILD_LOG_FORMAT = "Client player build failed with {0} error(s) after {1:hh\\:mm\\:ss}.";
 
@@ -360,12 +361,13 @@ namespace DeepForestLabs.BuildSystems
 		        bool buildAppBundle = reader.BooleanArgument(BUILD_APP_BUNDLE, false);
 		        string scriptingDefines = reader.StringArgument(SCRIPTING_DEFINES, string.Empty);
 		        string overrideEnvironmentFile = reader.StringArgument(OVERRIDE_ENVIRONMENT_FILE, string.Empty);
+		        string outputRoot = reader.StringArgument(OUTPUT_ROOT, string.Empty);
 		        BuildOptions buildOptions = isDebugBuild ? bss.DebugBuildOptions : bss.ReleaseBuildOptions;
 		        Dictionary<string, string> platformArgs = ParsePlatformArgs(reader.StringArgument(PLATFORM_ARGS, string.Empty));
 
 		        args = new CommandLineArgs(buildTarget, isCommandLineBuild, buildNumber, version, shortVersion,
 			        environment, uniqueId, assetId, enableJsonCatalog, contentStatePath, isDebugBuild, isReleaseBuild, 
-			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions, platformArgs);
+			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, outputRoot, buildOptions, platformArgs);
 
 		        if (!string.IsNullOrEmpty(args.OverrideEnvironmentUri))
 		        {
@@ -406,14 +408,18 @@ namespace DeepForestLabs.BuildSystems
 		        bool buildAppBundle = EditorUserBuildSettings.buildAppBundle && PlayerSettings.Android.splitApplicationBinary;
 		        string scriptingDefines = string.Empty;
 		        string overrideEnvironmentFile = EnvironmentsDownloader.DEFAULT_URL;
+		        string outputRoot = string.Empty;
 		        BuildOptions buildOptions = isDebugBuild ? bss.DebugBuildOptions : bss.ReleaseBuildOptions;
 		        Dictionary<string, string> platformArgs = platformSetup.GetDefaultPlatformArgs();
 
 		        args = new CommandLineArgs(buildTarget, isCommandLineBuild, buildNumber, version, shortVersion,
 			        environment, uniqueId, assetId, enableJsonCatalog, contentStatePath, isDebugBuild, isReleaseBuild, 
-			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, buildOptions, platformArgs);
+			        isTestFlightBuild, buildAppBundle, scriptingDefines, overrideEnvironmentFile, outputRoot, buildOptions, platformArgs);
 	        }
 
+		    // Runtime Variables cannot see CommandLineArgs; push the resolved root so
+		    // Addressables RemoteBuildPath matches BuilderUtils Builds/Backups paths.
+		    Variables.ConfigureOutputRoot(BuilderUtils.ResolveOutputRoot(args));
 		    return args;
         }
 

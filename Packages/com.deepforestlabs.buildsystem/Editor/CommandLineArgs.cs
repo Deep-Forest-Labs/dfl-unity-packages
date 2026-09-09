@@ -24,13 +24,18 @@ namespace DeepForestLabs.BuildSystems
         public bool BuildAppBundle { get; }
         public string ScriptingDefines { get; }
         public string OverrideEnvironmentUri { get; }
+        /// <summary>
+        /// Absolute directory that contains Builds/, Backups/, and AssetBundles/.
+        /// Empty means the Unity project root (parent of Assets/).
+        /// </summary>
+        public string OutputRoot { get; }
         public BuildOptions BuildOptions { get; }
         public Dictionary<string, string> PlatformArgs { get; }
 
         public CommandLineArgs(string buildTarget, bool isCommandLineBuild, int buildNumber, string version, string shortVersion,
             string environment, string uniqueId, string assetId, bool enableJsonCatalog, string contentStateDataPath, bool isDebugBuild,
             bool isReleaseBuild, bool isTestFlightBuild, bool buildAppBundle, string scriptingDefines, 
-            string overrideEnvironmentUri, BuildOptions buildOptions, Dictionary<string, string>? platformArgs = null)
+            string overrideEnvironmentUri, string outputRoot, BuildOptions buildOptions, Dictionary<string, string>? platformArgs = null)
         {
             BuildTarget = buildTarget;
             IsCommandLineBuild = isCommandLineBuild;
@@ -48,6 +53,7 @@ namespace DeepForestLabs.BuildSystems
             BuildAppBundle = buildAppBundle;
             ScriptingDefines = scriptingDefines;
             OverrideEnvironmentUri = overrideEnvironmentUri;
+            OutputRoot = outputRoot;
             BuildOptions = buildOptions;
             PlatformArgs = platformArgs ?? new Dictionary<string, string>();
         }
