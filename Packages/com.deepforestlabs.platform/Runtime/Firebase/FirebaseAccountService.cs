@@ -64,7 +64,7 @@ namespace DeepForestLabs.Platform
             token.ThrowIfCancellationRequested();
             ResolveFirebaseApi();
 
-            if (s_authType == null || s_auth == null)
+            if (s_authType == null)
             {
                 _sdkReady = false;
                 EnsureFallbackId();
@@ -80,10 +80,21 @@ namespace DeepForestLabs.Platform
 
             try
             {
+                // Must finish CheckAndFixDependencies before DefaultInstance —
+                // Firebase throws if Auth/Firestore/RC are touched while it runs.
                 if (!await FirebaseReflection.CheckAndFixDependencies(token))
                 {
                     _sdkReady = false;
                     EnsureFallbackId();
+                    return;
+                }
+
+                s_auth ??= FirebaseReflection.GetStaticPropertyValue(s_authType, "DefaultInstance");
+                if (s_auth == null)
+                {
+                    _sdkReady = false;
+                    EnsureFallbackId();
+                    Log.Warning("FirebaseAuth.DefaultInstance is null after dependency check.");
                     return;
                 }
 
@@ -492,10 +503,7 @@ namespace DeepForestLabs.Platform
                 return;
             }
 
-            PropertyInfo? defaultInstance = s_authType.GetProperty(
-                "DefaultInstance",
-                BindingFlags.Public | BindingFlags.Static);
-            s_auth = defaultInstance?.GetValue(null);
+            // Defer DefaultInstance until after CheckAndFixDependencies (see Initialize).
             s_currentUser = s_authType.GetProperty("CurrentUser", BindingFlags.Public | BindingFlags.Instance);
             s_signInAnonymously = s_authType.GetMethod(
                 "SignInAnonymouslyAsync",

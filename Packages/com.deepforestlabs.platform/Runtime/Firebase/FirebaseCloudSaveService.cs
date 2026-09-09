@@ -41,6 +41,8 @@ namespace DeepForestLabs.Platform
         private static PropertyInfo? s_exists;
         private static object? s_mergeAll;
         private static object? s_fieldDelete;
+        private static PropertyInfo? s_mergeAllProp;
+        private static PropertyInfo? s_fieldDeleteProp;
         private static bool s_resolved;
 
         public bool IsAvailable => _sdkReady;
@@ -50,7 +52,7 @@ namespace DeepForestLabs.Platform
             token.ThrowIfCancellationRequested();
             ResolveFirebaseApi();
 
-            if (s_firestoreType == null || s_firestore == null)
+            if (s_firestoreType == null)
             {
                 _sdkReady = false;
                 if (!_missingSdkLogged)
@@ -65,10 +67,23 @@ namespace DeepForestLabs.Platform
 
             try
             {
-                _sdkReady = await FirebaseReflection.CheckAndFixDependencies(token);
+                // Must finish CheckAndFixDependencies before DefaultInstance —
+                // Firebase throws if Auth/Firestore/RC are touched while it runs.
+                if (!await FirebaseReflection.CheckAndFixDependencies(token))
+                {
+                    _sdkReady = false;
+                    Log.Warning("Firebase Firestore disabled; dependencies unavailable.");
+                    return;
+                }
+
+                s_firestore ??= FirebaseReflection.GetStaticPropertyValue(s_firestoreType, "DefaultInstance");
+                // FieldValue / SetOptions statics touch JNI — only safe after CheckAndFixDependencies.
+                s_mergeAll ??= s_mergeAllProp?.GetValue(null);
+                s_fieldDelete ??= s_fieldDeleteProp?.GetValue(null);
+                _sdkReady = s_firestore != null;
                 if (!_sdkReady)
                 {
-                    Log.Warning("Firebase Firestore disabled; dependencies unavailable.");
+                    Log.Warning("FirebaseFirestore.DefaultInstance is null after dependency check.");
                 }
             }
             catch (OperationCanceledException)
@@ -303,10 +318,7 @@ namespace DeepForestLabs.Platform
                 return;
             }
 
-            PropertyInfo? defaultInstance = s_firestoreType.GetProperty(
-                "DefaultInstance",
-                BindingFlags.Public | BindingFlags.Static);
-            s_firestore = defaultInstance?.GetValue(null);
+            // Defer DefaultInstance until after CheckAndFixDependencies (see Initialize).
             s_collection = s_firestoreType.GetMethod(
                 "Collection",
                 BindingFlags.Public | BindingFlags.Instance,
@@ -347,8 +359,8 @@ namespace DeepForestLabs.Platform
                     "Firebase.Firestore");
                 if (setOptions != null)
                 {
-                    s_mergeAll = setOptions.GetProperty("MergeAll", BindingFlags.Public | BindingFlags.Static)
-                        ?.GetValue(null);
+                    // Defer MergeAll GetValue until after CheckAndFixDependencies (JNI).
+                    s_mergeAllProp = setOptions.GetProperty("MergeAll", BindingFlags.Public | BindingFlags.Static);
                     s_setAsyncMerge = docType.GetMethod(
                         "SetAsync",
                         BindingFlags.Public | BindingFlags.Instance,
@@ -382,8 +394,8 @@ namespace DeepForestLabs.Platform
             Type? fieldValue = FirebaseReflection.FindType(
                 "Firebase.Firestore.FieldValue",
                 "Firebase.Firestore");
-            s_fieldDelete = fieldValue?.GetProperty("Delete", BindingFlags.Public | BindingFlags.Static)
-                ?.GetValue(null);
+            // Defer FieldValue.Delete GetValue until after CheckAndFixDependencies (JNI / ServerTimestamp).
+            s_fieldDeleteProp = fieldValue?.GetProperty("Delete", BindingFlags.Public | BindingFlags.Static);
         }
     }
 }

@@ -43,7 +43,7 @@ namespace DeepForestLabs.Platform
             token.ThrowIfCancellationRequested();
             ResolveFirebaseApi();
 
-            if (s_rcType == null || s_defaultInstance == null)
+            if (s_rcType == null)
             {
                 if (!_missingSdkLogged)
                 {
@@ -60,6 +60,14 @@ namespace DeepForestLabs.Platform
                 if (!await EnsureFirebaseAppAvailable(token))
                 {
                     _sdkReady = false;
+                    return RemoteConfigRefreshStatus.Failed;
+                }
+
+                s_defaultInstance ??= GetStaticPropertyValue(s_rcType, "DefaultInstance");
+                if (s_defaultInstance == null)
+                {
+                    _sdkReady = false;
+                    Log.Warning("FirebaseRemoteConfig.DefaultInstance is null after dependency check.");
                     return RemoteConfigRefreshStatus.Failed;
                 }
 
@@ -226,7 +234,11 @@ namespace DeepForestLabs.Platform
             }
 
             object settings = Activator.CreateInstance(s_configSettingsType)!;
-            s_minFetchIntervalMs.SetValue(settings, 0L);
+            // Firebase SDK versions differ: MinimumFetchIntervalInMilliseconds is ulong on
+            // recent C# bindings, long on older ones.
+            Type intervalType = s_minFetchIntervalMs.PropertyType;
+            object zero = Convert.ChangeType(0, intervalType);
+            s_minFetchIntervalMs.SetValue(settings, zero);
 
             if (s_setConfigSettingsAsync.Invoke(s_defaultInstance, new[] { settings }) is Task settingsTask)
             {
@@ -254,36 +266,13 @@ namespace DeepForestLabs.Platform
 
         private static async UniTask<bool> EnsureFirebaseAppAvailable(CancellationToken token)
         {
-            Type? appType = FindType("Firebase.FirebaseApp", "Firebase.App");
-            if (appType == null)
-            {
-                Log.Warning("Firebase.App assembly not found; Remote Config disabled.");
-                return false;
-            }
+            return await FirebaseReflection.CheckAndFixDependencies(token);
+        }
 
-            MethodInfo? check = appType.GetMethod(
-                "CheckAndFixDependenciesAsync",
-                BindingFlags.Public | BindingFlags.Static,
-                binder: null,
-                types: Type.EmptyTypes,
-                modifiers: null);
-            if (check == null || check.Invoke(null, null) is not Task task)
-            {
-                Log.Warning("FirebaseApp.CheckAndFixDependenciesAsync not found.");
-                return false;
-            }
-
-            await task.AsUniTask().AttachExternalCancellation(token);
-
-            PropertyInfo? resultProp = task.GetType().GetProperty("Result");
-            object? status = resultProp?.GetValue(task);
-            bool available = status != null && status.ToString() == "Available";
-            if (!available)
-            {
-                Log.Warning("Firebase dependencies unavailable: {0}", status);
-            }
-
-            return available;
+        private static object? GetStaticPropertyValue(Type type, string propertyName)
+        {
+            return type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static)
+                ?.GetValue(null);
         }
 
         private static void ResolveFirebaseApi()
@@ -303,10 +292,7 @@ namespace DeepForestLabs.Platform
                 return;
             }
 
-            PropertyInfo? defaultInstance = s_rcType.GetProperty(
-                "DefaultInstance",
-                BindingFlags.Public | BindingFlags.Static);
-            s_defaultInstance = defaultInstance?.GetValue(null);
+            // Defer DefaultInstance until after CheckAndFixDependencies (see Refresh).
 
             s_setDefaultsAsync = s_rcType.GetMethod(
                 "SetDefaultsAsync",

@@ -10,6 +10,9 @@ namespace DeepForestLabs.Platform.Internal
 {
     internal static class FirebaseReflection
     {
+        private static readonly object CheckGate = new();
+        private static UniTaskCompletionSource<bool>? s_checkTcs;
+
         public static void TryLoadAssembly(string assemblyName)
         {
             try
@@ -48,36 +51,81 @@ namespace DeepForestLabs.Platform.Internal
             return null;
         }
 
-        public static async UniTask<bool> CheckAndFixDependencies(CancellationToken token)
+        /// <summary>
+        /// Single-flight Firebase dependency check. Callers must not touch
+        /// DefaultInstance (Auth/Firestore/RemoteConfig) until this returns true —
+        /// concurrent GetValue on those properties throws while the check runs.
+        /// </summary>
+        public static UniTask<bool> CheckAndFixDependencies(CancellationToken token)
         {
-            Type? appType = FindType("Firebase.FirebaseApp", "Firebase.App");
-            if (appType == null)
+            lock (CheckGate)
             {
-                Log.Warning("Firebase.App assembly not found.");
+                if (s_checkTcs == null)
+                {
+                    s_checkTcs = new UniTaskCompletionSource<bool>();
+                    RunCheckAndFixDependencies(s_checkTcs).Forget();
+                }
+            }
+
+            return AwaitSharedCheck(token);
+        }
+
+        private static async UniTask<bool> AwaitSharedCheck(CancellationToken token)
+        {
+            UniTaskCompletionSource<bool> tcs = s_checkTcs
+                ?? throw new InvalidOperationException("Firebase check TCS missing.");
+            return await tcs.Task.AttachExternalCancellation(token);
+        }
+
+        private static async UniTask<bool> RunCheckAndFixDependencies(UniTaskCompletionSource<bool> tcs)
+        {
+            bool available = false;
+            try
+            {
+                Type? appType = FindType("Firebase.FirebaseApp", "Firebase.App");
+                if (appType == null)
+                {
+                    Log.Warning("Firebase.App assembly not found.");
+                    tcs.TrySetResult(false);
+                    return false;
+                }
+
+                MethodInfo? check = appType.GetMethod(
+                    "CheckAndFixDependenciesAsync",
+                    BindingFlags.Public | BindingFlags.Static,
+                    binder: null,
+                    types: Type.EmptyTypes,
+                    modifiers: null);
+                if (check == null || check.Invoke(null, null) is not Task task)
+                {
+                    Log.Warning("FirebaseApp.CheckAndFixDependenciesAsync not found.");
+                    tcs.TrySetResult(false);
+                    return false;
+                }
+
+                await AwaitTask(task, CancellationToken.None);
+                object? status = TaskResult(task);
+                available = status != null && status.ToString() == "Available";
+                if (!available)
+                {
+                    Log.Warning("Firebase dependencies unavailable: {0}", status);
+                }
+
+                tcs.TrySetResult(available);
+                return available;
+            }
+            catch (Exception e)
+            {
+                Log.Exception(e, "Firebase CheckAndFixDependencies failed.");
+                tcs.TrySetResult(false);
                 return false;
             }
+        }
 
-            MethodInfo? check = appType.GetMethod(
-                "CheckAndFixDependenciesAsync",
-                BindingFlags.Public | BindingFlags.Static,
-                binder: null,
-                types: Type.EmptyTypes,
-                modifiers: null);
-            if (check == null || check.Invoke(null, null) is not Task task)
-            {
-                Log.Warning("FirebaseApp.CheckAndFixDependenciesAsync not found.");
-                return false;
-            }
-
-            await AwaitTask(task, token);
-            object? status = TaskResult(task);
-            bool available = status != null && status.ToString() == "Available";
-            if (!available)
-            {
-                Log.Warning("Firebase dependencies unavailable: {0}", status);
-            }
-
-            return available;
+        public static object? GetStaticPropertyValue(Type type, string propertyName)
+        {
+            return type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static)
+                ?.GetValue(null);
         }
 
         public static async UniTask AwaitTask(Task task, CancellationToken token)

@@ -55,35 +55,10 @@ namespace DeepForestLabs.Platform
 
             try
             {
-                Type? appType = FindType("Firebase.FirebaseApp", "Firebase.App");
-                if (appType == null)
-                {
-                    _sdkReady = false;
-                    Log.Warning("Firebase.App assembly not found; Analytics disabled.");
-                    return;
-                }
-
-                MethodInfo? check = appType.GetMethod(
-                    "CheckAndFixDependenciesAsync",
-                    BindingFlags.Public | BindingFlags.Static,
-                    binder: null,
-                    types: Type.EmptyTypes,
-                    modifiers: null);
-                if (check == null || check.Invoke(null, null) is not Task task)
-                {
-                    _sdkReady = false;
-                    Log.Warning("FirebaseApp.CheckAndFixDependenciesAsync not found.");
-                    return;
-                }
-
-                await task.AsUniTask().AttachExternalCancellation(token);
-
-                PropertyInfo? resultProp = task.GetType().GetProperty("Result");
-                object? status = resultProp?.GetValue(task);
-                _sdkReady = status != null && status.ToString() == "Available";
+                _sdkReady = await FirebaseReflection.CheckAndFixDependencies(token);
                 if (!_sdkReady)
                 {
-                    Log.Warning("Firebase dependencies unavailable: {0}", status);
+                    Log.Warning("Firebase dependencies unavailable for Analytics.");
                 }
             }
             catch (OperationCanceledException)
