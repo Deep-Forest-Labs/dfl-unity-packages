@@ -15,7 +15,7 @@ namespace DeepForestLabs.Audio
         [SerializeField] private int _maxInstances;
         [SerializeField] private int _poolPrewarm;
         [SerializeField] private bool _preload;
-        [SerializeField] private DuckingProfile? _ducking;
+        [SerializeField] [Optional] private DuckingProfile? _ducking;
 
         [Header("Spatial")]
         [SerializeField] [Range(0f, 1f)] private float _spatialBlend;
