@@ -120,7 +120,7 @@ public interface IPlatformBuildSetup
 Executed in `callbackOrder` sequence:
 
 1. **ClientPreBuilder** -- log build info, backup files, create output directories, disable splash screen
-2. **SpriteAtlasPreprocessBuild** -- disable sprite atlas "include in build"
+2. **SpriteAtlasPreprocessBuild** -- disable "include in build" only on Addressable sprite atlases
 3. **SetBuildNumber** -- sync build number to `PlayerSettings`
 4. **SetScriptingDefines** -- merge scripting defines, swap `RELEASE_BUILD` / `NOT_RELEASE_BUILD`
 5. **SetKeystoreInfo_Android** -- configure Android keystore

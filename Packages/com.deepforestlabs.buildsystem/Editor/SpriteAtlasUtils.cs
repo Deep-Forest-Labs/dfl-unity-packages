@@ -1,8 +1,11 @@
 #nullable enable
 using System;
 using UnityEditor;
-using ZLinq;
+using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Settings;
 using UnityEngine.U2D;
+using ZLinq;
+using DeepForestLabs.Logger;
 
 namespace DeepForestLabs.BuildSystems
 {
@@ -13,17 +16,42 @@ namespace DeepForestLabs.BuildSystems
 
         [MenuItem("Deep Forest Labs/Tools/SpriteAtlasV2/Clear 'Include In Build' Flag")]
         public static void ResetAllIncludeInBuildMenuItem() => SetAllIncludeInBuild(false);
-        
+
+        /// <summary>
+        /// Addressable atlases must not also be embedded in the player (double memory).
+        /// Non-addressable atlases stay in the player — otherwise a store build has
+        /// sprite objects and no atlas texture, and every Image draws white.
+        /// </summary>
         public static void SetAllIncludeInBuild(bool enable, bool omitResources = true)
         {
             SpriteAtlas[] spriteAtlases = LoadSpriteAtlases(omitResources);
- 
+
             foreach (SpriteAtlas atlas in spriteAtlases)
             {
+                if (!enable && !IsAddressable(atlas))
+                {
+                    BuildLog.Info(
+                        "SpriteAtlas: leaving IncludeInBuild on '{0}' (not in an Addressable group)",
+                        atlas.name);
+                    continue;
+                }
+
                 SetIncludeInBuild(atlas, enable);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        private static bool IsAddressable(SpriteAtlas atlas)
+        {
+            AddressableAssetSettings? settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+                return false;
+            string path = AssetDatabase.GetAssetPath(atlas);
+            if (string.IsNullOrEmpty(path))
+                return false;
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            return settings.FindAssetEntry(guid) != null;
         }
  
         private static void SetIncludeInBuild(SpriteAtlas spriteAtlas, bool enable)

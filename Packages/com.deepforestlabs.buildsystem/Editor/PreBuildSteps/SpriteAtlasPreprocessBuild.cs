@@ -12,8 +12,7 @@ namespace DeepForestLabs.BuildSystems.PreBuildSteps
         public void OnPreprocessBuild(BuildReport report)
         {
             BuildLog.Info("##### SpriteAtlas PreprocessBuild start ######");
-            BuildLog.Info("When loading the sprite atlases via Addressable, we should avoid they getting build into the app. Otherwise, the sprite atlases will get loaded into memory twice.");
-            BuildLog.Info("Set the `IncludeInBuild` flag to `false` for all sprite atlases before starting the App build.");
+            BuildLog.Info("Clear IncludeInBuild only on atlases that are Addressable, so they are not embedded and then loaded from a bundle. Atlases that are not in a group stay in the player.");
 
             SpriteAtlasUtils.SetAllIncludeInBuild(false);
  
