@@ -64,7 +64,7 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 
 **Lives in platform:**
 
-- `IAnalyticsService` (product / funnel events)
+- `IAnalyticsService` (product / funnel events + `SetUserProperty` for experiment dimensions such as `economy_id`)
 - `FirebaseAnalyticsService` + `FirebaseAnalyticsUiEventHelper` (`ui_click` forwarder)
 - `NullAnalyticsUiHelpers` (error helper stays no-op — **Sentry** is crash/error truth)
 - `AnalyticsOnce` — lifetime-once funnel flags in PlayerPrefs (not game save)

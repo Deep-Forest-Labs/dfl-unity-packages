@@ -28,6 +28,7 @@ namespace DeepForestLabs.Platform
         private static Type? s_parameterType;
         private static MethodInfo? s_logEventName;
         private static MethodInfo? s_logEventParams;
+        private static MethodInfo? s_setUserProperty;
         private static ConstructorInfo? s_paramString;
         private static ConstructorInfo? s_paramLong;
         private static ConstructorInfo? s_paramDouble;
@@ -130,6 +131,23 @@ namespace DeepForestLabs.Platform
             }
         }
 
+        public void SetUserProperty(string name, string value)
+        {
+            if (string.IsNullOrEmpty(name) || !IsEnabled || s_analyticsType == null)
+            {
+                return;
+            }
+
+            try
+            {
+                s_setUserProperty?.Invoke(null, new object[] { name, value ?? "" });
+            }
+            catch (Exception e)
+            {
+                Log.Exception(e, "FirebaseAnalytics.SetUserProperty failed for '{0}'.", name);
+            }
+        }
+
         public UniTask Flush(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
@@ -158,6 +176,13 @@ namespace DeepForestLabs.Platform
                 BindingFlags.Public | BindingFlags.Static,
                 binder: null,
                 types: new[] { typeof(string) },
+                modifiers: null);
+
+            s_setUserProperty = s_analyticsType.GetMethod(
+                "SetUserProperty",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: new[] { typeof(string), typeof(string) },
                 modifiers: null);
 
             if (s_parameterType != null)

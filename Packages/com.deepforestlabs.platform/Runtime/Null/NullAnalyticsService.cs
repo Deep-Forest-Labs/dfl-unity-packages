@@ -18,6 +18,14 @@ namespace DeepForestLabs.Platform
                 eventName);
         }
 
+        public void SetUserProperty(string name, string value)
+        {
+            NullPlatformLog.Once(
+                nameof(NullAnalyticsService) + "." + nameof(SetUserProperty),
+                "dropped user property '{0}'",
+                name);
+        }
+
         public UniTask Flush(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();

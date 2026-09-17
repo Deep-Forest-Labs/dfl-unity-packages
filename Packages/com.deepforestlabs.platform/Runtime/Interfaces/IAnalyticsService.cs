@@ -14,6 +14,8 @@ namespace DeepForestLabs.Platform
 
         void Track(string eventName, IReadOnlyDictionary<string, object?>? parameters = null);
 
+        void SetUserProperty(string name, string value);
+
         UniTask Flush(CancellationToken token);
     }
 }
