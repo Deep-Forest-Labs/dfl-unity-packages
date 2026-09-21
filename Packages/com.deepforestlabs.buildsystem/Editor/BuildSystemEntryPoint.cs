@@ -395,7 +395,7 @@ namespace DeepForestLabs.BuildSystems
 		        string[] versionParts = PlayerSettings.bundleVersion.Split('.');
 		        string version = ZString.Format("{0}.{1}.{2} ({3})", versionParts[0], versionParts[1], versionParts[2], buildNumber);
 		        string shortVersion = ZString.Format("{0}.{1}.{2}", versionParts[0], versionParts[1], versionParts[2]);
-		        string environment = bs.Environment.Name;
+		        string environment = string.IsNullOrEmpty(bs.Environment.Name) ? "local" : bs.Environment.Name;
 		        string uniqueId = bs.Addressables.UniqueId;
 		        bool enableJsonCatalog = AddressableAssetSettingsDefaultObject.Settings.EnableJsonCatalog;
 		        uniqueId = string.IsNullOrEmpty(uniqueId) ? AddressablesBuildSettings.DEFAULT_UNIQUE_VALUE : uniqueId;
@@ -407,7 +407,7 @@ namespace DeepForestLabs.BuildSystems
 		        bool isTestFlightBuild = false;
 		        bool buildAppBundle = EditorUserBuildSettings.buildAppBundle && PlayerSettings.Android.splitApplicationBinary;
 		        string scriptingDefines = string.Empty;
-		        string overrideEnvironmentFile = EnvironmentsDownloader.DEFAULT_URL;
+		        string overrideEnvironmentFile = string.Empty;
 		        string outputRoot = string.Empty;
 		        BuildOptions buildOptions = isDebugBuild ? bss.DebugBuildOptions : bss.ReleaseBuildOptions;
 		        Dictionary<string, string> platformArgs = platformSetup.GetDefaultPlatformArgs();

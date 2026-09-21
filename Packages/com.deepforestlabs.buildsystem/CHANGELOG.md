@@ -5,9 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.3] - 2026-09-21
+ - Editor Play Mode: do not force `https://example.com/envlist`; use `BuildSystemSettings.EnvironmentsUrl` instead.
+ - Default editor environment name to `local` when `BuildSettings` has no environment selected.
+ - Support `project://Assets/Editor/envlist.json` URLs resolved to a local `file://` path.
+
+## [1.0.2] - 2026-09-21
  - CI signing via env vars (`DFL_ANDROID_*`, `DFL_APPLE_TEAM_ID`); remove hardcoded Android keystore placeholders
  - EnvironmentsDownloader loads local envlist files / `file:` paths (not only HTTP)
  - iOS Team ID from `DFL_APPLE_TEAM_ID` for TestFlight/CI automatic signing
+
+## [1.0.0] - Unreleased (historical)
  - Added support for content update builds
  - Move PlayerPref build args to be scriptable object that are created on build.
  - Cleanup fo various build paths to ensure local and jenkins builds work the same. 

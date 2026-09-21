@@ -25,6 +25,7 @@ namespace DeepForestLabs.BuildSystems
 
         public static IReadOnlyList<EnvironmentBuildSettings> GetEnvironments(string url = DEFAULT_URL)
         {
+            url = ResolveEnvironmentListUrl(url);
             if (_cachedUrl == url && _cached.Count > 0)
             {
                 return _cached;
@@ -90,6 +91,23 @@ namespace DeepForestLabs.BuildSystems
             _cached = result;
             _cachedUrl = cacheKey;
             return _cached;
+        }
+
+        /// <summary>
+        /// Resolves <c>project://Assets/Editor/envlist.json</c> to a <c>file://</c> URI under the Unity project root.
+        /// </summary>
+        private static string ResolveEnvironmentListUrl(string url)
+        {
+            const string projectPrefix = "project://";
+            if (!url.StartsWith(projectPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return url;
+            }
+
+            string relative = url.Substring(projectPrefix.Length);
+            string projectRoot = Directory.GetParent(Application.dataPath)!.FullName;
+            string fullPath = Path.GetFullPath(Path.Combine(projectRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
+            return new Uri(fullPath).AbsoluteUri;
         }
 
         /// <summary>
