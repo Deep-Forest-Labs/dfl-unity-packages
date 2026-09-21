@@ -57,6 +57,13 @@ namespace DeepForestLabs.Platform
             return UniTask.FromResult(AccountActionResult.Unavailable);
         }
 
+        public UniTask<string?> GetIdToken(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            NullPlatformLog.Once(nameof(NullAccountService) + "." + nameof(GetIdToken), "no token");
+            return UniTask.FromResult<string?>(null);
+        }
+
         private static string LoadOrCreateId()
         {
             string existing = PlayerPrefs.GetString(PrefsKey, string.Empty);

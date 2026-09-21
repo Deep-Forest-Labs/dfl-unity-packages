@@ -15,7 +15,9 @@ namespace DeepForestLabs.Platform
                 case PlatformServiceOptions.Null:
                     return AddNullPlatformServices(builder);
                 case PlatformServiceOptions.Firebase:
-                    return AddFirebasePlatformServices(builder);
+                    return AddFirebasePlatformServices(builder, includeAnalytics: true);
+                case PlatformServiceOptions.FirebaseNoAnalytics:
+                    return AddFirebasePlatformServices(builder, includeAnalytics: false);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(options), options, "Unsupported PlatformServiceOptions.");
             }
@@ -38,13 +40,28 @@ namespace DeepForestLabs.Platform
                 .AddScoped<IConsentService, NullConsentService>();
         }
 
-        private static IContainerBuilder AddFirebasePlatformServices(IContainerBuilder builder)
+        private static IContainerBuilder AddFirebasePlatformServices(
+            IContainerBuilder builder,
+            bool includeAnalytics)
         {
-            return builder
+            builder = builder
                 .AddScoped<NullAnalyticsUiHelpers>()
-                .AddAlias<IAnalyticsErrorHelper, NullAnalyticsUiHelpers>()
-                .AddScoped<IAnalyticsUIEventHelper, FirebaseAnalyticsUiEventHelper>()
-                .AddScoped<IAnalyticsService, FirebaseAnalyticsService>()
+                .AddAlias<IAnalyticsErrorHelper, NullAnalyticsUiHelpers>();
+
+            if (includeAnalytics)
+            {
+                builder = builder
+                    .AddScoped<IAnalyticsUIEventHelper, FirebaseAnalyticsUiEventHelper>()
+                    .AddScoped<IAnalyticsService, FirebaseAnalyticsService>();
+            }
+            else
+            {
+                builder = builder
+                    .AddAlias<IAnalyticsUIEventHelper, NullAnalyticsUiHelpers>()
+                    .AddScoped<IAnalyticsService, NullAnalyticsService>();
+            }
+
+            return builder
                 .AddScoped<IRemoteConfigService, FirebaseRemoteConfigService>()
                 .AddScoped<IBootConfigClient, NullBootConfigClient>()
                 .AddScoped<IAdService, NullAdService>()

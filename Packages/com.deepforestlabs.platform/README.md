@@ -11,7 +11,7 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 {
     return base.AddToBuilder(builder)
 #if UNITY_EDITOR
-        .AddPlatformServices(PlatformServiceOptions.Null)
+        .AddPlatformServices(PlatformServiceOptions.Null) // or FirebaseNoAnalytics
 #else
         .AddPlatformServices(PlatformServiceOptions.Firebase)
 #endif

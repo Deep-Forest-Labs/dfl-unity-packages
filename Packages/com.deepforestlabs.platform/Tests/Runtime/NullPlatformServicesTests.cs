@@ -133,6 +133,7 @@ namespace DeepForestLabs.Platform.Tests
             Assert.AreEqual(
                 AccountActionResult.Succeeded,
                 account.SignOut(CancellationToken.None).GetAwaiter().GetResult());
+            Assert.IsNull(account.GetIdToken(CancellationToken.None).GetAwaiter().GetResult());
         }
 
         [Test]

@@ -24,6 +24,9 @@ namespace DeepForestLabs.Platform
         UniTask<AccountActionResult> SignOut(CancellationToken token);
 
         UniTask<AccountActionResult> SendPasswordReset(string email, CancellationToken token);
+
+        /// <summary>Firebase ID token for Auth-gated HTTPS. Null when Auth is unavailable.</summary>
+        UniTask<string?> GetIdToken(CancellationToken token);
     }
 }
 #nullable disable
