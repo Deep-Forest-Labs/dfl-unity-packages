@@ -25,8 +25,9 @@ public override IContainerBuilder AddToBuilder(IContainerBuilder builder)
 
 | Option | Behavior |
 |--------|----------|
-| `Null` | No-op seams (editor / tests) |
+| `Null` | No-op seams (tests / capture / pinned local) |
 | `Firebase` | Firebase Analytics + Remote Config + ATT consent + Auth + Firestore cloud save; ads stay `NullAdService` until the game App scope registers `MaxAdService` |
+| `FirebaseNoAnalytics` | Same as `Firebase` except Analytics stays Null (Editor Play on a dev stack) |
 
 Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `analytics` / `remote-config` / `auth` / `firestore`). The platform Firebase adapters use reflection so this package always compiles; without the SDK present at runtime, analytics events are dropped, RC refresh fails, Auth falls back to a device-local id, and cloud save is `Unavailable`.
 
@@ -77,7 +78,7 @@ Firebase Unity packages are **owned by the game** (`com.google.firebase.app` / `
 
 **Lifecycle:** `IInitializable` restores a persisted session or signs in anonymously **before** boot fetch so `BootSnapshot.PlayerId` is the Firebase uid.
 
-**API:** `CreateAccount` links the anonymous user with email+password; `SignIn` / `SignOut` / `SendPasswordReset`; `IsLinked` when the user has an email provider. Results: `Unavailable` / `Succeeded` / `Failed` / `Cancelled` / `EmailInUse` / `InvalidCredential`.
+**API:** `CreateAccount` links the anonymous user with email+password; `SignIn` / `SignOut` / `SendPasswordReset`; `GetIdToken` (Bearer for Auth-gated HTTPS; Null adapter returns null); `IsLinked` when the user has an email provider. Results: `Unavailable` / `Succeeded` / `Failed` / `Cancelled` / `EmailInUse` / `InvalidCredential`.
 
 **Analytics:** `account_create` / `account_sign_in` / `account_sign_out` / `account_password_reset` `{ result }` (lowercase enum). No email in params.
 

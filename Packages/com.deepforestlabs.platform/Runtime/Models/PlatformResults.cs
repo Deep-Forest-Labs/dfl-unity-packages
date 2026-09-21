@@ -78,7 +78,9 @@ namespace DeepForestLabs.Platform
     public enum PlatformServiceOptions
     {
         Null = 0,
-        Firebase = 1
+        Firebase = 1,
+        /// <summary>Auth + Firestore + Remote Config. Analytics stays Null (Editor / no-funnel stacks).</summary>
+        FirebaseNoAnalytics = 2
     }
 }
 #nullable disable

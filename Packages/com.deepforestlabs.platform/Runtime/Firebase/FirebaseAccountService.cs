@@ -47,6 +47,7 @@ namespace DeepForestLabs.Platform
         private static MethodInfo? s_sendReset;
         private static MethodInfo? s_getCredential;
         private static MethodInfo? s_linkCredential;
+        private static MethodInfo? s_tokenAsync;
         private static PropertyInfo? s_currentUser;
         private static PropertyInfo? s_userId;
         private static PropertyInfo? s_userEmail;
@@ -347,6 +348,46 @@ namespace DeepForestLabs.Platform
             }
         }
 
+        public async UniTask<string?> GetIdToken(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!_sdkReady || s_auth == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                if (!TryReadCurrentUser())
+                {
+                    await EnsureAnonymousAsync(token);
+                }
+
+                object? user = CurrentUser();
+                if (user == null || s_tokenAsync == null)
+                {
+                    return null;
+                }
+
+                if (s_tokenAsync.Invoke(user, new object[] { false }) is not Task task)
+                {
+                    return null;
+                }
+
+                await FirebaseReflection.AwaitTask(task, token);
+                return FirebaseReflection.TaskResult(task) as string;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Log.Exception(e, "Firebase GetIdToken failed.");
+                return null;
+            }
+        }
+
         private bool TryBeginMutation(
             string email,
             string password,
@@ -550,6 +591,18 @@ namespace DeepForestLabs.Platform
                 s_userId = s_userType.GetProperty("UserId");
                 s_userEmail = s_userType.GetProperty("Email");
                 s_isAnonymous = s_userType.GetProperty("IsAnonymous");
+                s_tokenAsync = s_userType.GetMethod(
+                    "TokenAsync",
+                    BindingFlags.Public | BindingFlags.Instance,
+                    binder: null,
+                    types: new[] { typeof(bool) },
+                    modifiers: null)
+                    ?? s_userType.GetMethod(
+                        "GetIdTokenAsync",
+                        BindingFlags.Public | BindingFlags.Instance,
+                        binder: null,
+                        types: new[] { typeof(bool) },
+                        modifiers: null);
                 Type? credentialType = FirebaseReflection.FindType("Firebase.Auth.Credential", "Firebase.Auth");
                 if (credentialType != null)
                 {
