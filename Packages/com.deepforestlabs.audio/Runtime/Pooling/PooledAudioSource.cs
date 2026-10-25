@@ -67,6 +67,16 @@ namespace DeepForestLabs.Audio
             Source.priority = Mathf.Clamp(priority, 0, 256);
         }
 
+        public void SetPitch(float pitch)
+        {
+            Source.pitch = ResolvePitch(pitch);
+        }
+
+        public static float ResolvePitch(float pitch) => pitch > 0f ? pitch : 1f;
+
+        /// <summary>Real seconds a clip plays at <paramref name="pitch"/>.</summary>
+        public static float PlayedSeconds(float clipLength, float pitch) => clipLength / ResolvePitch(pitch);
+
         public void Play()
         {
             IsActive = true;
@@ -95,6 +105,7 @@ namespace DeepForestLabs.Audio
             Source.spatialize = false;
             Source.spatializePostEffects = false;
             Source.priority = DefaultPriority;
+            Source.pitch = 1f;
             GameObject.transform.position = Vector3.zero;
             AssignedClip = null;
             Group = default;

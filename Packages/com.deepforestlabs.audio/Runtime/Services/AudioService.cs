@@ -227,6 +227,7 @@ namespace DeepForestLabs.Audio
                 source.Configure(clip, group, startVolume, p.Pan, p.Loop);
             }
             source.SetPriority(priority);
+            source.SetPitch(p.Pitch);
             source.Play();
 
             SoundHandle handle = new SoundHandle(source, p.Group, p.Volume, OnHandleStopped);
@@ -245,7 +246,7 @@ namespace DeepForestLabs.Audio
 
             if (!p.Loop)
             {
-                MonitorClipCompletion(handle, clip.length, token).Forget();
+                MonitorClipCompletion(handle, PooledAudioSource.PlayedSeconds(clip.length, p.Pitch), token).Forget();
             }
 
             return handle;
@@ -406,7 +407,8 @@ namespace DeepForestLabs.Audio
                     StealPolicy = o.StealPolicy,
                     StealFadeDuration = o.StealFadeDuration,
                     Cooldown = o.Cooldown,
-                    Priority = o.Priority
+                    Priority = o.Priority,
+                    Pitch = PooledAudioSource.ResolvePitch(o.Pitch)
                 };
             }
 
@@ -428,7 +430,8 @@ namespace DeepForestLabs.Audio
                 StealPolicy = StealPolicy.StealOldest,
                 StealFadeDuration = 0f,
                 Cooldown = 0f,
-                Priority = null
+                Priority = null,
+                Pitch = 1f
             };
         }
 
@@ -455,7 +458,8 @@ namespace DeepForestLabs.Audio
                     : entry.StealPolicy,
                 StealFadeDuration = resolved.StealFadeDuration > 0f ? resolved.StealFadeDuration : entry.StealFadeDuration,
                 Cooldown = resolved.Cooldown > 0f ? resolved.Cooldown : entry.Cooldown,
-                Priority = resolved.Priority ?? entry.Priority
+                Priority = resolved.Priority ?? entry.Priority,
+                Pitch = resolved.Pitch
             };
         }
 
@@ -479,7 +483,8 @@ namespace DeepForestLabs.Audio
                 StealPolicy = p.StealPolicy,
                 StealFadeDuration = p.StealFadeDuration,
                 Cooldown = p.Cooldown,
-                Priority = p.Priority
+                Priority = p.Priority,
+                Pitch = p.Pitch
             };
         }
 
