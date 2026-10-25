@@ -29,6 +29,10 @@ namespace DeepForestLabs.Audio
         [SerializeField] private float _stealFadeDuration = 0.08f;
         [Tooltip("Minimum seconds between successive plays of this key. 0 = no cooldown.")]
         [SerializeField] private float _cooldown;
+        [Tooltip("Use Priority instead of the group's priority.")]
+        [SerializeField] private bool _overridePriority;
+        [Tooltip("AudioSource priority: 0 = most important, 256 = least.")]
+        [SerializeField] [Range(0, 256)] private int _priority = PooledAudioSource.DefaultPriority;
 
         public string Key => _key;
         public AudioClipAssetRef Clip => _clip;
@@ -46,6 +50,7 @@ namespace DeepForestLabs.Audio
         public StealPolicy StealPolicy => _stealPolicy;
         public float StealFadeDuration => _stealFadeDuration;
         public float Cooldown => _cooldown;
+        public int? Priority => _overridePriority ? _priority : null;
     }
 }
 #nullable disable

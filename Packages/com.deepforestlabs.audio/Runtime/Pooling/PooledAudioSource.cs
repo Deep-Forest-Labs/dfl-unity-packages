@@ -6,11 +6,14 @@ namespace DeepForestLabs.Audio
 {
     internal sealed class PooledAudioSource
     {
+        public const int DefaultPriority = 128;
+
         public AudioSource Source { get; }
         public GameObject GameObject { get; }
         public bool IsActive { get; set; }
         public AudioClip? AssignedClip { get; set; }
         public SoundGroupId Group { get; set; }
+        public int Priority => Source.priority;
 
         public PooledAudioSource(Transform parent)
         {
@@ -59,6 +62,11 @@ namespace DeepForestLabs.Audio
             GameObject.transform.position = position;
         }
 
+        public void SetPriority(int priority)
+        {
+            Source.priority = Mathf.Clamp(priority, 0, 256);
+        }
+
         public void Play()
         {
             IsActive = true;
@@ -86,6 +94,7 @@ namespace DeepForestLabs.Audio
             Source.spatialBlend = 0f;
             Source.spatialize = false;
             Source.spatializePostEffects = false;
+            Source.priority = DefaultPriority;
             GameObject.transform.position = Vector3.zero;
             AssignedClip = null;
             Group = default;

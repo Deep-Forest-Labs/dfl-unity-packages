@@ -18,6 +18,7 @@ namespace DeepForestLabs.Audio
         [Dependency] private readonly SoundCatalog? _catalog = null;
 
         private AudioSourcePool _pool = null!;
+        private VoiceBudget _voiceBudget = null!;
         private GameObject _root = null!;
         private readonly List<SoundHandle> _activeHandles = new();
         private readonly Dictionary<SoundHandle, ActiveSound> _activeSounds = new();
@@ -53,7 +54,9 @@ namespace DeepForestLabs.Audio
             _root = new GameObject("[AudioService]");
             Object.DontDestroyOnLoad(_root);
 
-            _pool = new AudioSourcePool(_root.transform);
+            int poolCapacity = _mixerConfig.ResolvePoolCapacity(AudioSettings.GetConfiguration().numRealVoices);
+            _pool = new AudioSourcePool(_root.transform, AudioSourcePool.DefaultInitialCapacity, poolCapacity);
+            _voiceBudget = new VoiceBudget(_pool, _mixerConfig);
 
             if (_catalog != null)
             {
@@ -195,7 +198,8 @@ namespace DeepForestLabs.Audio
                 }
             }
 
-            if (!CanAdmitVoice(p.Group))
+            int priority = _voiceBudget.ResolvePriority(p.Group, p.Priority);
+            if (!TryAdmitVoice(p.Group, priority))
             {
                 _assetCache.Release(clipRef);
                 return CreateStoppedHandle(p.Group);
@@ -222,6 +226,7 @@ namespace DeepForestLabs.Audio
             {
                 source.Configure(clip, group, startVolume, p.Pan, p.Loop);
             }
+            source.SetPriority(priority);
             source.Play();
 
             SoundHandle handle = new SoundHandle(source, p.Group, p.Volume, OnHandleStopped);
@@ -351,32 +356,23 @@ namespace DeepForestLabs.Audio
             }
         }
 
-        private bool CanAdmitVoice(SoundGroupId group)
+        private bool TryAdmitVoice(SoundGroupId group, int priority)
         {
-            if (_mixerConfig.TryGetMapping(group, out AudioMixerConfig.GroupMapping mapping))
+            if (_voiceBudget.IsGroupFull(group, out GroupFullPolicy whenFull))
             {
-                if (mapping.MaxVoices > 0 && _pool.CountActiveForGroup(group) >= mapping.MaxVoices)
-                {
-                    return false;
-                }
+                PooledAudioSource? oldest = whenFull == GroupFullPolicy.StealOldest
+                    ? _pool.FindOldestInGroup(group)
+                    : null;
+                if (oldest == null) return false;
+                StealSource(oldest, StealPolicy.StealOldest, 0f);
             }
 
-            int totalAvailable = _pool.MaxCapacity - _pool.ActiveCount;
-            if (totalAvailable <= 0) return false;
+            if (_voiceBudget.HasFreeVoice(group)) return true;
 
-            int reservedForOthers = 0;
-            foreach (AudioMixerConfig.GroupMapping other in _mixerConfig.GroupMappings)
-            {
-                if (other.ReservedVoices <= 0) continue;
-                SoundGroupId otherGroup = new SoundGroupId(other.GroupName);
-                if (otherGroup == group) continue;
-
-                int activeForOther = _pool.CountActiveForGroup(otherGroup);
-                int unfilled = other.ReservedVoices - activeForOther;
-                if (unfilled > 0) reservedForOthers += unfilled;
-            }
-
-            return totalAvailable > reservedForOthers;
+            PooledAudioSource? lessImportant = _voiceBudget.FindPriorityStealCandidate(group, priority);
+            if (lessImportant == null) return false;
+            StealSource(lessImportant, StealPolicy.StealOldest, 0f);
+            return _voiceBudget.HasFreeVoice(group);
         }
 
         private SoundEntry ResolveCatalogEntry(string key)
@@ -409,7 +405,8 @@ namespace DeepForestLabs.Audio
                     Spatialize = o.Spatialize,
                     StealPolicy = o.StealPolicy,
                     StealFadeDuration = o.StealFadeDuration,
-                    Cooldown = o.Cooldown
+                    Cooldown = o.Cooldown,
+                    Priority = o.Priority
                 };
             }
 
@@ -430,11 +427,12 @@ namespace DeepForestLabs.Audio
                 Spatialize = false,
                 StealPolicy = StealPolicy.StealOldest,
                 StealFadeDuration = 0f,
-                Cooldown = 0f
+                Cooldown = 0f,
+                Priority = null
             };
         }
 
-        private static SoundParams MergeEntryParams(SoundEntry entry, SoundParams? options, bool defaultLoop)
+        internal static SoundParams MergeEntryParams(SoundEntry entry, SoundParams? options, bool defaultLoop)
         {
             SoundParams resolved = ResolveParams(options, entry.Group, defaultLoop);
             return new SoundParams
@@ -456,7 +454,8 @@ namespace DeepForestLabs.Audio
                     ? resolved.StealPolicy
                     : entry.StealPolicy,
                 StealFadeDuration = resolved.StealFadeDuration > 0f ? resolved.StealFadeDuration : entry.StealFadeDuration,
-                Cooldown = resolved.Cooldown > 0f ? resolved.Cooldown : entry.Cooldown
+                Cooldown = resolved.Cooldown > 0f ? resolved.Cooldown : entry.Cooldown,
+                Priority = resolved.Priority ?? entry.Priority
             };
         }
 
@@ -479,7 +478,8 @@ namespace DeepForestLabs.Audio
                 Spatialize = p.Spatialize,
                 StealPolicy = p.StealPolicy,
                 StealFadeDuration = p.StealFadeDuration,
-                Cooldown = p.Cooldown
+                Cooldown = p.Cooldown,
+                Priority = p.Priority
             };
         }
 

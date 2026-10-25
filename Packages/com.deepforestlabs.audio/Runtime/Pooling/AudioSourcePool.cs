@@ -7,8 +7,8 @@ namespace DeepForestLabs.Audio
 {
     internal sealed class AudioSourcePool
     {
-        private const int DefaultInitialCapacity = 8;
-        private const int DefaultMaxCapacity = 64;
+        public const int DefaultInitialCapacity = 8;
+        public const int DefaultMaxCapacity = 64;
 
         private readonly List<PooledAudioSource> _available = new();
         private readonly List<PooledAudioSource> _active = new();
@@ -25,7 +25,8 @@ namespace DeepForestLabs.Audio
             _root = root;
             _maxCapacity = maxCapacity;
 
-            for (int i = 0; i < initialCapacity; i++)
+            int initial = Mathf.Min(initialCapacity, maxCapacity);
+            for (int i = 0; i < initial; i++)
             {
                 _available.Add(CreateSource());
             }
@@ -117,6 +118,15 @@ namespace DeepForestLabs.Audio
             foreach (PooledAudioSource source in _active)
             {
                 if (source.AssignedClip == clip) return source;
+            }
+            return null;
+        }
+
+        public PooledAudioSource? FindOldestInGroup(SoundGroupId group)
+        {
+            foreach (PooledAudioSource source in _active)
+            {
+                if (source.Group == group) return source;
             }
             return null;
         }

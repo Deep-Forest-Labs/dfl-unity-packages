@@ -24,6 +24,10 @@ namespace DeepForestLabs.Audio
         public float StealFadeDuration { get; init; }
         public float Cooldown { get; init; }
 
+        /// <summary>AudioSource priority (0 = most important, 256 = least). Null uses the
+        /// catalog entry's override, then the group's priority.</summary>
+        public int? Priority { get; init; }
+
         public static SoundParams Default => new()
         {
             Group = default,
@@ -41,7 +45,8 @@ namespace DeepForestLabs.Audio
             Spatialize = false,
             StealPolicy = StealPolicy.StealOldest,
             StealFadeDuration = 0.08f,
-            Cooldown = 0f
+            Cooldown = 0f,
+            Priority = null
         };
     }
 }

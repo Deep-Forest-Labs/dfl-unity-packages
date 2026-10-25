@@ -210,6 +210,75 @@ namespace DeepForestLabs.Audio.Tests
 
             Object.DestroyImmediate(clip);
         }
+
+        [Test]
+        public void InitialCapacity_IsClampedToMaxCapacity()
+        {
+            AudioSourcePool small = new AudioSourcePool(_root.transform, initialCapacity: 8, maxCapacity: 3);
+
+            Assert.AreEqual(3, small.TotalCount);
+        }
+
+        [Test]
+        public void FindOldestInGroup_ReturnsOldestMatchingSource()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            SoundGroupId sfx = new SoundGroupId("SFX");
+            SoundGroupId bgm = new SoundGroupId("BGM");
+
+            PooledAudioSource? music = _pool.Rent(null, clip);
+            music!.Group = bgm;
+            PooledAudioSource? oldest = _pool.Rent(null, clip);
+            oldest!.Group = sfx;
+            PooledAudioSource? newer = _pool.Rent(null, clip);
+            newer!.Group = sfx;
+
+            Assert.AreSame(oldest, _pool.FindOldestInGroup(sfx));
+            Assert.IsNull(_pool.FindOldestInGroup(new SoundGroupId("UI")));
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void NewSource_HasUnityDefaultPriority()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            PooledAudioSource? source = _pool.Rent(null, clip);
+
+            Assert.AreEqual(128, source!.Priority);
+            Assert.AreEqual(128, source.Source.priority);
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void SetPriority_SetsAudioSourcePriority_Clamped()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            PooledAudioSource? source = _pool.Rent(null, clip);
+
+            source!.SetPriority(12);
+            Assert.AreEqual(12, source.Source.priority);
+
+            source.SetPriority(999);
+            Assert.AreEqual(256, source.Source.priority);
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
+        public void Return_RestoresDefaultPriority()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            PooledAudioSource? source = _pool.Rent(null, clip);
+            source!.SetPriority(12);
+
+            _pool.Return(source);
+
+            Assert.AreEqual(128, source.Source.priority);
+
+            Object.DestroyImmediate(clip);
+        }
     }
 }
 #nullable disable
