@@ -215,6 +215,35 @@ The service maintains a pool of `AudioSource` components on hidden `GameObjects`
 - **Prewarm**: catalog entries with `PoolPrewarm > 0` pre-allocate idle sources during initialization
 - **Auto-return**: non-looping sources are returned to the pool when the clip finishes
 
+## Voice Budget
+
+Unity plays at most **Max Real Voices** (Project Settings > Audio) at once. Past that, Unity virtualizes the sources with the worst `AudioSource.priority`. The voice budget lets the service decide what plays instead.
+
+### Pool size
+
+`AudioMixerConfig.SizePoolToRealVoices` (off by default) sizes the pool to `AudioSettings.GetConfiguration().numRealVoices`, read once when the service initializes. Off, the pool stays at 64.
+
+### Per-group settings
+
+Each `AudioMixerConfig` group mapping has:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `Max Voices` | 0 (no cap) | Most voices this group plays at once |
+| `Reserved Voices` | 0 | Pool slots only this group may use |
+| `When Full` | `RejectNew` | At `Max Voices`: `RejectNew` drops the new sound, `StealOldest` stops the group's oldest voice |
+| `Priority` | 128 | `AudioSource.priority` for the group's sounds. 0 is most important, 256 least |
+
+Add a mapping per group your game routes to. Groups beyond the built-ins (`BGM`, `SFX`, `UI`) are listed in a `SoundGroupRegistry` so **Auto-Map Groups from Mixer** and the catalog's group picker see them.
+
+### Per-sound priority
+
+A `SoundEntry` with **Override Priority** on uses its own `Priority` instead of the group's. `SoundParams.Priority` overrides both for one play. The resolved value is set on the pooled `AudioSource` when the sound plays.
+
+### When the pool is full
+
+A new sound takes the voice of the least important playing sound that is strictly less important than itself (oldest first on ties), and is rejected if there is none. Voices inside another group's reservation are never taken. With every priority at the default 128, nothing is taken and a full pool rejects the new sound, as before.
+
 ## Architecture
 
 See [Dependency Injection](dependency-injection.md) for how `AddAudioService` works under the hood. The service registers:

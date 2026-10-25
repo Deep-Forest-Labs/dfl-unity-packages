@@ -61,7 +61,7 @@ public sealed class GameController
 
 | Type | Description |
 |------|-------------|
-| `AudioMixerConfig` | Maps `SoundGroupId` names to `AudioMixerGroup` references and exposed volume parameters |
+| `AudioMixerConfig` | Maps `SoundGroupId` names to `AudioMixerGroup` references and exposed volume parameters, with per-group voice caps, reservations, full policy, and priority. Optionally sizes the pool to Unity's real voices |
 | `SoundCatalog` | Keyed collection of `SoundEntry` items with `ISerializationCallbackReceiver` for O(1) lookup |
 | `DuckingProfile` | Defines ducking: target group, dB reduction, attack/release times |
 
@@ -69,12 +69,13 @@ public sealed class GameController
 
 | Type | Description |
 |------|-------------|
-| `SoundEntry` | One catalog row: key, `AudioClipAssetRef`, group, default volume/pan, max instances, pool prewarm, preload flag, optional ducking |
+| `SoundEntry` | One catalog row: key, `AudioClipAssetRef`, group, default volume/pan, max instances, pool prewarm, preload flag, optional ducking, optional priority override |
 
 ## Features
 
 - **On-demand + optional preload**: clips load via `IContainer.Checkout` when first played; catalog entries can be marked for eager preload during `Initialize`
 - **AudioSource pooling**: pooled instances with configurable capacity, per-clip max instances (steals oldest), prewarm hints
+- **Voice budget**: per-group max and reserved voices, a full policy (`RejectNew` or `StealOldest`), and an `AudioSource.priority` per group or per sound. A full pool gives a new sound the voice of a less important one. `SizePoolToRealVoices` caps the pool at Unity's real voices. Every default keeps the pre-budget behavior: priority 128, reject when full, pool of 64. See [Audio Service](../../docs/audio-service.md#voice-budget)
 - **Mixer routing**: all playback routed through Unity `AudioMixerGroup`; volume controlled via exposed parameters with linear-to-dB conversion
 - **Ducking**: `DuckingProfile` assets define which group to duck and by how much; multiple requests stack (deepest duck wins)
 - **BGM crossfade**: `PlayBgm` with `CrossfadeDuration` fades out the previous track while fading in the new one
