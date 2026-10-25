@@ -57,6 +57,8 @@ namespace DeepForestLabs.Audio.Editor
                 newEntry.FindPropertyRelative("_stealPolicy").enumValueIndex = 0;
                 newEntry.FindPropertyRelative("_stealFadeDuration").floatValue = 0.08f;
                 newEntry.FindPropertyRelative("_cooldown").floatValue = 0f;
+                newEntry.FindPropertyRelative("_overridePriority").boolValue = false;
+                newEntry.FindPropertyRelative("_priority").intValue = PooledAudioSource.DefaultPriority;
                 newEntry.FindPropertyRelative("_spatialBlend").floatValue = 0f;
                 newEntry.FindPropertyRelative("_minDistance").floatValue = 1f;
                 newEntry.FindPropertyRelative("_maxDistance").floatValue = 40f;
@@ -241,6 +243,12 @@ namespace DeepForestLabs.Audio.Editor
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_stealPolicy"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_stealFadeDuration"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("_cooldown"));
+                SerializedProperty overridePriority = entry.FindPropertyRelative("_overridePriority");
+                EditorGUILayout.PropertyField(overridePriority);
+                using (new EditorGUI.DisabledGroupScope(!overridePriority.boolValue))
+                {
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("_priority"));
+                }
 
                 EditorGUI.indentLevel -= 2;
                 EditorGUILayout.Space(4);

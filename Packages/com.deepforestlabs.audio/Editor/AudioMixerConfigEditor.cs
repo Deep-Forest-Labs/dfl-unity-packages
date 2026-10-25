@@ -12,12 +12,14 @@ namespace DeepForestLabs.Audio.Editor
         private SerializedProperty _mixer = null!;
         private SerializedProperty _masterVolumeParam = null!;
         private SerializedProperty _groupMappings = null!;
+        private SerializedProperty _sizePoolToRealVoices = null!;
 
         private void OnEnable()
         {
             _mixer = serializedObject.FindProperty("_mixer");
             _masterVolumeParam = serializedObject.FindProperty("_masterVolumeParam");
             _groupMappings = serializedObject.FindProperty("_groupMappings");
+            _sizePoolToRealVoices = serializedObject.FindProperty("_sizePoolToRealVoices");
         }
 
         public override void OnInspectorGUI()
@@ -26,6 +28,8 @@ namespace DeepForestLabs.Audio.Editor
 
             EditorGUILayout.PropertyField(_mixer);
             EditorGUILayout.PropertyField(_masterVolumeParam);
+            EditorGUILayout.PropertyField(_sizePoolToRealVoices, new GUIContent("Size Pool To Real Voices",
+                "Size the AudioSource pool to Project Settings > Audio > Max Real Voices instead of 64."));
 
             DrawValidation();
 
@@ -81,6 +85,10 @@ namespace DeepForestLabs.Audio.Editor
                     "Maximum concurrent voices for this group. 0 = no limit."));
                 EditorGUILayout.PropertyField(reservedVoices, new GUIContent("Reserved Voices",
                     "Pool slots reserved exclusively for this group."));
+                EditorGUILayout.PropertyField(mapping.FindPropertyRelative("_whenFull"), new GUIContent("When Full",
+                    "What a new sound does when the group is at Max Voices."));
+                EditorGUILayout.PropertyField(mapping.FindPropertyRelative("_priority"), new GUIContent("Priority",
+                    "AudioSource priority: 0 = most important, 256 = least. Catalog entries can override it."));
 
                 if (maxVoices.intValue < 0) maxVoices.intValue = 0;
                 if (reservedVoices.intValue < 0) reservedVoices.intValue = 0;
@@ -99,7 +107,12 @@ namespace DeepForestLabs.Audio.Editor
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("+", GUILayout.Width(24)))
             {
+                bool wasEmpty = _groupMappings.arraySize == 0;
                 _groupMappings.InsertArrayElementAtIndex(_groupMappings.arraySize);
+                if (wasEmpty)
+                {
+                    SetNewMappingDefaults(_groupMappings.GetArrayElementAtIndex(0));
+                }
             }
             using (new EditorGUI.DisabledGroupScope(_groupMappings.arraySize == 0))
             {
@@ -118,28 +131,54 @@ namespace DeepForestLabs.Audio.Editor
         private void DrawReservationSummary()
         {
             int totalReserved = 0;
+            int totalMaxVoices = 0;
+            bool anyUncapped = false;
             for (int i = 0; i < _groupMappings.arraySize; i++)
             {
                 SerializedProperty mapping = _groupMappings.GetArrayElementAtIndex(i);
                 totalReserved += mapping.FindPropertyRelative("_reservedVoices").intValue;
+                int maxVoices = mapping.FindPropertyRelative("_maxVoices").intValue;
+                totalMaxVoices += maxVoices;
+                anyUncapped |= maxVoices <= 0;
             }
 
-            if (totalReserved > 0)
+            int realVoices = AudioSettings.GetConfiguration().numRealVoices;
+            int poolMax = AudioMixerConfig.ResolvePoolCapacity(_sizePoolToRealVoices.boolValue, realVoices);
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.HelpBox(
+                $"Voice budget: pool max {poolMax} ({realVoices} real voices). " +
+                $"Groups: {totalMaxVoices} max voices, {totalReserved} reserved, {poolMax - totalReserved} unreserved.",
+                MessageType.Info);
+
+            if (poolMax > realVoices)
             {
-                EditorGUILayout.Space(4);
-                int poolMax = 64;
-                int unreserved = poolMax - totalReserved;
                 EditorGUILayout.HelpBox(
-                    $"Voice budget: {totalReserved} reserved, {unreserved} unreserved (pool max {poolMax})",
-                    MessageType.Info);
-
-                if (totalReserved >= poolMax)
-                {
-                    EditorGUILayout.HelpBox(
-                        "Total reservations consume the entire pool — unreserved groups will be unable to play.",
-                        MessageType.Error);
-                }
+                    "The pool can outgrow Unity's real voices, and then Unity silences sounds by AudioSource priority. " +
+                    "Enable Size Pool To Real Voices so the pool decides instead.",
+                    MessageType.Warning);
             }
+
+            if (anyUncapped || totalMaxVoices > poolMax)
+            {
+                EditorGUILayout.HelpBox(
+                    "Group max voices can add up to more than the pool. When the pool is full, a new sound takes the " +
+                    "voice of a less important sound (by priority) or is rejected.",
+                    MessageType.Info);
+            }
+
+            if (totalReserved >= poolMax)
+            {
+                EditorGUILayout.HelpBox(
+                    "Total reservations consume the entire pool — unreserved groups will be unable to play.",
+                    MessageType.Error);
+            }
+        }
+
+        private static void SetNewMappingDefaults(SerializedProperty mapping)
+        {
+            mapping.FindPropertyRelative("_whenFull").enumValueIndex = (int)GroupFullPolicy.RejectNew;
+            mapping.FindPropertyRelative("_priority").intValue = PooledAudioSource.DefaultPriority;
         }
 
         private void DrawValidation()
@@ -235,6 +274,7 @@ namespace DeepForestLabs.Audio.Editor
                     newMapping.FindPropertyRelative("_groupName").stringValue = regGroup;
                     newMapping.FindPropertyRelative("_mixerGroup").objectReferenceValue = match;
                     newMapping.FindPropertyRelative("_volumeParam").stringValue = $"{regGroup}Volume";
+                    SetNewMappingDefaults(newMapping);
                 }
             }
 
