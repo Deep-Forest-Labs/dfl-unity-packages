@@ -8,6 +8,7 @@ namespace DeepForestLabs.Audio.Editor
     public sealed class DuckingProfileEditor : UnityEditor.Editor
     {
         private SerializedProperty _targetGroup = null!;
+        private SerializedProperty _alsoDucks = null!;
         private SerializedProperty _volumeReductionDb = null!;
         private SerializedProperty _attackTime = null!;
         private SerializedProperty _releaseTime = null!;
@@ -15,6 +16,7 @@ namespace DeepForestLabs.Audio.Editor
         private void OnEnable()
         {
             _targetGroup = serializedObject.FindProperty("_targetGroup");
+            _alsoDucks = serializedObject.FindProperty("_alsoDucks");
             _volumeReductionDb = serializedObject.FindProperty("_volumeReductionDb");
             _attackTime = serializedObject.FindProperty("_attackTime");
             _releaseTime = serializedObject.FindProperty("_releaseTime");
@@ -25,6 +27,7 @@ namespace DeepForestLabs.Audio.Editor
             serializedObject.Update();
 
             EditorGUILayout.PropertyField(_targetGroup);
+            EditorGUILayout.PropertyField(_alsoDucks, true);
             EditorGUILayout.PropertyField(_volumeReductionDb);
             EditorGUILayout.PropertyField(_attackTime);
             EditorGUILayout.PropertyField(_releaseTime);

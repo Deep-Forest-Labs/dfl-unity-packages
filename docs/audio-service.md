@@ -150,12 +150,12 @@ Add matching mixer groups in your AudioMixer and map them in `AudioMixerConfig`.
 
 ## Ducking
 
-Ducking temporarily lowers one group's volume when a specific sound plays (e.g. duck BGM when a win fanfare plays).
+Ducking temporarily lowers one or more groups' volume when a specific sound plays (e.g. duck BGM when a win fanfare plays).
 
 ### Setup
 
 1. Create a `DuckingProfile` asset (Assets > Create > Audio > Ducking Profile)
-2. Configure: target group to duck, dB reduction, attack/release times
+2. Configure: target group to duck, any groups it also ducks, dB reduction, attack/release times
 3. Assign it to a `SoundEntry` in your catalog, or pass it via `SoundParams`
 
 ### Usage
@@ -172,7 +172,11 @@ ISoundHandle fanfare = await _audio.PlaySfx(_fanfareClip, new SoundParams
 ISoundHandle fanfare = await _audio.PlaySfx("win_fanfare", token: token);
 ```
 
-Multiple simultaneous duck requests on the same target group stack -- the deepest reduction wins. When all ducking triggers stop, the original volume is restored.
+A profile ducks its target group and every group in **Also Ducks** by the same amount, on the same attack and release.
+
+Each group fades to its new level: going deeper takes the fastest attack among its active requests, and coming back up takes the release time of the profile that stopped. Times are unscaled, so ducks fade while the game is paused. An attack or release of 0 changes the volume at once.
+
+Multiple simultaneous duck requests on the same group stack -- the deepest reduction wins. When all ducking triggers stop, the group fades back to its original volume.
 
 ## Preloading
 
@@ -252,5 +256,5 @@ See [Dependency Injection](dependency-injection.md) for how `AddAudioService` wo
 - `SoundCatalog` as optional singleton
 - `IAudioMixerProvider` (scoped) -- mixer group resolution and volume control
 - `AudioAssetCache` (scoped) -- ref-counted clip loading via `IContainer.Checkout`
-- `DuckingController` (scoped) -- stacking ducking requests
+- `DuckingController` (scoped) -- stacking ducking requests and fading each group's duck
 - `IAudioService` -> `AudioService` (scoped) -- orchestrates everything
