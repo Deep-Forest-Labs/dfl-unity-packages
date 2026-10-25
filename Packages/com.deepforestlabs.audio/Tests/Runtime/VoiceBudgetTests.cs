@@ -218,6 +218,16 @@ namespace DeepForestLabs.Audio.Tests
             Assert.AreEqual(7, AudioService.MergeEntryParams(overridden, new SoundParams { Priority = 7 }, false).Priority);
         }
 
+        [Test]
+        public void MergeEntryParams_PitchDefaultsToOne()
+        {
+            SoundEntry plain = JsonUtility.FromJson<SoundEntry>("{\"_key\":\"a\"}");
+
+            Assert.AreEqual(1f, AudioService.MergeEntryParams(plain, null, false).Pitch);
+            Assert.AreEqual(1f, AudioService.MergeEntryParams(plain, new SoundParams { Volume = 0.5f }, false).Pitch);
+            Assert.AreEqual(1.1f, AudioService.MergeEntryParams(plain, new SoundParams { Pitch = 1.1f }, false).Pitch, 1e-5f);
+        }
+
         private VoiceBudget CreateBudget(params string[] mappings)
         {
             _config = CreateConfig(mappings: mappings);

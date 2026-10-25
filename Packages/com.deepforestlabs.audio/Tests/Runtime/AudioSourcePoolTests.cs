@@ -267,6 +267,26 @@ namespace DeepForestLabs.Audio.Tests
         }
 
         [Test]
+        public void SetPitch_ZeroPlaysAtOne_AndReturnRestoresOne()
+        {
+            AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);
+            PooledAudioSource? source = _pool.Rent(null, clip);
+
+            source!.SetPitch(0f);
+            Assert.AreEqual(1f, source.Source.pitch);
+            source.SetPitch(1.25f);
+            Assert.AreEqual(1.25f, source.Source.pitch, 1e-5f);
+
+            _pool.Return(source);
+
+            Assert.AreEqual(1f, source.Source.pitch);
+            Assert.AreEqual(4f, PooledAudioSource.PlayedSeconds(2f, 0.5f), 1e-5f, "a lower pitch plays longer");
+            Assert.AreEqual(2f, PooledAudioSource.PlayedSeconds(2f, 0f), 1e-5f);
+
+            Object.DestroyImmediate(clip);
+        }
+
+        [Test]
         public void Return_RestoresDefaultPriority()
         {
             AudioClip clip = AudioClip.Create("test", 44100, 1, 44100, false);

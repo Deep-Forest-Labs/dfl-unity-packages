@@ -28,6 +28,9 @@ namespace DeepForestLabs.Audio
         /// catalog entry's override, then the group's priority.</summary>
         public int? Priority { get; init; }
 
+        /// <summary>AudioSource pitch, which also sets playback speed (1 = as recorded). 0 or below plays at 1.</summary>
+        public float Pitch { get; init; }
+
         public static SoundParams Default => new()
         {
             Group = default,
@@ -46,7 +49,8 @@ namespace DeepForestLabs.Audio
             StealPolicy = StealPolicy.StealOldest,
             StealFadeDuration = 0.08f,
             Cooldown = 0f,
-            Priority = null
+            Priority = null,
+            Pitch = 1f
         };
     }
 }
