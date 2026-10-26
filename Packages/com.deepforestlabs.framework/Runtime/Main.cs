@@ -133,33 +133,32 @@ namespace DeepForestLabs
             finally
             {
                 // EditorExit already dropped this run and may have started another.
-                if (generation != _runGeneration)
+                // Stay inside the finally: C# rejects a return here (CS0157).
+                if (generation == _runGeneration)
                 {
-                    return;
-                }
+                    _runScope?.Cancel();
+                    _runScope?.Dispose();
+                    _runScope = null;
 
-                _runScope?.Cancel();
-                _runScope?.Dispose();
-                _runScope = null;
-                
-                _mainState = null;
-                if (_container != null)
-                {
-                    await _container.DisposeAsync();
-                }
-                _container = null;
-                _errorReporter = null;
-                
-                OnExit?.Invoke();
-                Log.Info(APPLICATION_SHUTTING_DOWN);
+                    _mainState = null;
+                    if (_container != null)
+                    {
+                        await _container.DisposeAsync();
+                    }
+                    _container = null;
+                    _errorReporter = null;
+
+                    OnExit?.Invoke();
+                    Log.Info(APPLICATION_SHUTTING_DOWN);
 
 #if UNITY_EDITOR
-                if (UnityEditor.EditorApplication.isPlaying)
-                {
-                    UnityEditor.EditorApplication.ExitPlaymode();
-                }
-                GC.Collect();
+                    if (UnityEditor.EditorApplication.isPlaying)
+                    {
+                        UnityEditor.EditorApplication.ExitPlaymode();
+                    }
+                    GC.Collect();
 #endif
+                }
             }
         }
 
