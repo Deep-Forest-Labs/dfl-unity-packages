@@ -33,6 +33,9 @@ namespace DeepForestLabs
         private static IContainer? _container = null;
         private static MainState? _mainState = null;
         private static IErrorReporter? _errorReporter = null;
+        // Bumped when a run starts and when editor exit drops that run. A resumed
+        // finally from the dropped run must not cancel the next enter.
+        private static int _runGeneration;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         private static void BeforeSplashScreen()
@@ -101,6 +104,7 @@ namespace DeepForestLabs
 
         private static async UniTaskVoid Run(MainArgs args, CancellationToken token)
         {
+            int generation = ++_runGeneration;
             Log.Assert(_container == null, "_container ==null");
             Log.Assert(_mainState == null, "_mainState ==null");
 
@@ -128,28 +132,33 @@ namespace DeepForestLabs
             }
             finally
             {
-                _runScope?.Cancel();
-                _runScope?.Dispose();
-                _runScope = null;
-                
-                _mainState = null;
-                if (_container != null)
+                // EditorExit already dropped this run and may have started another.
+                // Stay inside the finally: C# rejects a return here (CS0157).
+                if (generation == _runGeneration)
                 {
-                    await _container.DisposeAsync();
-                }
-                _container = null;
-                _errorReporter = null;
-                
-                OnExit?.Invoke();
-                Log.Info(APPLICATION_SHUTTING_DOWN);
+                    _runScope?.Cancel();
+                    _runScope?.Dispose();
+                    _runScope = null;
+
+                    _mainState = null;
+                    if (_container != null)
+                    {
+                        await _container.DisposeAsync();
+                    }
+                    _container = null;
+                    _errorReporter = null;
+
+                    OnExit?.Invoke();
+                    Log.Info(APPLICATION_SHUTTING_DOWN);
 
 #if UNITY_EDITOR
-                if (UnityEditor.EditorApplication.isPlaying)
-                {
-                    UnityEditor.EditorApplication.ExitPlaymode();
-                }
-                GC.Collect();
+                    if (UnityEditor.EditorApplication.isPlaying)
+                    {
+                        UnityEditor.EditorApplication.ExitPlaymode();
+                    }
+                    GC.Collect();
 #endif
+                }
             }
         }
 
@@ -175,14 +184,62 @@ namespace DeepForestLabs
         [System.Diagnostics.Conditional("UNITY_EDITOR")]
         internal static void EditorExit()
         {
-            UniTask.NextFrame(PlayerLoopTiming.Initialization)
-                .ContinueWith(() =>
-                {
-                    _runScope?.Cancel();
-                    _runScope?.Dispose();
-                    _runScope = null;
-                });
+            // The player loop is stopping, so a NextFrame continuation never runs.
+            // Cancel now: the Main object's scope registration DestroyImmediate's it,
+            // including the menu AudioListener, before the next enter adds another.
+            _runGeneration++;
+
+            CancellationTokenSource? scope = _runScope;
+            IContainer? container = _container;
+            _runScope = null;
+            _container = null;
+            _mainState = null;
+            _errorReporter = null;
+
+            if (scope != null && !scope.IsCancellationRequested)
+            {
+                scope.Cancel();
+            }
+            scope?.Dispose();
+
+            if (container is { IsDisposed: false })
+            {
+                container.Dispose();
+            }
+
+#if UNITY_EDITOR
+            ReleaseLeftoverEars();
+#endif
         }
+
+#if UNITY_EDITOR
+        // A previous enter with scene reload disabled can leave DisplayCamera's
+        // listener enabled on an object that was not under Main. The next enter
+        // adds a fresh root listener, and Unity then logs a duplicate every frame.
+        private static void ReleaseLeftoverEars()
+        {
+            AudioListener[] listeners = UnityEngine.Object.FindObjectsByType<AudioListener>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+            foreach (AudioListener listener in listeners)
+            {
+                if (listener == null)
+                {
+                    continue;
+                }
+
+                Transform root = listener.transform.root;
+                if (root.name == MAIN_CONTAINER_NAME)
+                {
+                    UnityEngine.Object.DestroyImmediate(root.gameObject);
+                }
+                else
+                {
+                    listener.enabled = false;
+                }
+            }
+        }
+#endif
     }
 }
 #nullable disable
