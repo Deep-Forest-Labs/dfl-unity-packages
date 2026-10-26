@@ -28,9 +28,23 @@ namespace DeepForestLabs
                 GameObject.DontDestroyOnLoad(gameObject);
             }
 
+            ContainerBuilder builder = new ContainerBuilder(name, gameObject, token);
+            Container container = builder._container;
+            Root = container;
+
             void DisposeGameObject()
             {
-                Root = null;
+                // A late callback from an editor exit must not clear a newer Main.
+                if (ReferenceEquals(Root, container))
+                {
+                    Root = null;
+                }
+
+                if (gameObject == null)
+                {
+                    return;
+                }
+
 #if UNITY_EDITOR
                 GameObject.DestroyImmediate(gameObject);
 #else
@@ -38,8 +52,6 @@ namespace DeepForestLabs
 #endif
             }
 
-            ContainerBuilder builder = new ContainerBuilder(name, gameObject, token);
-            Root = builder._container;
             builder.Scope.Register(DisposeGameObject);
             
             return builder;
